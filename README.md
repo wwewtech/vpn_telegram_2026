@@ -94,6 +94,24 @@ _Важно: доступность ботов может меняться. Ес
 | 46 | @NachosVPN_bot | [t.me/NachosVPN_bot](https://t.me/NachosVPN_bot) |
 | 47 | @VPNLuxury_robot | [t.me/VPNLuxury_robot](https://t.me/VPNLuxury_robot) |
 | 48 | @DureVpnBot | [t.me/DureVpnBot](https://t.me/DureVpnBot) |
+| 49 | @hitvpnbot | [t.me/hitvpnbot](https://t.me/hitvpnbot) |
+| 50 | @vpntelegramrobot | [t.me/vpntelegramrobot](https://t.me/vpntelegramrobot) |
+| 51 | @free_vpn_amnezia_bot | [t.me/free_vpn_amnezia_bot](https://t.me/free_vpn_amnezia_bot) |
+| 52 | @beepassvpn_bot | [t.me/beepassvpn_bot](https://t.me/beepassvpn_bot) |
+| 53 | @vpntypebot | [t.me/vpntypebot](https://t.me/vpntypebot) |
+| 54 | @vpnbot | [t.me/vpnbot](https://t.me/vpnbot) |
+| 55 | @FCK_RKN_bot | [t.me/FCK_RKN_bot](https://t.me/FCK_RKN_bot) |
+| 56 | @zavoz_vpn_bot | [t.me/zavoz_vpn_bot](https://t.me/zavoz_vpn_bot) |
+| 57 | @prvtvpnbot | [t.me/prvtvpnbot](https://t.me/prvtvpnbot) |
+| 58 | @okak_vpnbot | [t.me/okak_vpnbot](https://t.me/okak_vpnbot) |
+| 59 | @VPNDendibot | [t.me/VPNDendibot](https://t.me/VPNDendibot) |
+| 60 | @sssrvpn_bot | [t.me/sssrvpn_bot](https://t.me/sssrvpn_bot) |
+| 61 | @vpndriftbot | [t.me/vpndriftbot](https://t.me/vpndriftbot) |
+| 62 | @openspace_vpn_bot | [t.me/openspace_vpn_bot](https://t.me/openspace_vpn_bot) |
+| 63 | @deepseek_vpn_bot | [t.me/deepseek_vpn_bot](https://t.me/deepseek_vpn_bot) |
+| 64 | @gemini_vpn_bot | [t.me/gemini_vpn_bot](https://t.me/gemini_vpn_bot) |
+| 65 | @digitalvpnbot | [t.me/digitalvpnbot](https://t.me/digitalvpnbot) |
+| 66 | @YzeNet_bot | [t.me/YzeNet_bot](https://t.me/YzeNet_bot) |
 
 ## FAQ
 
