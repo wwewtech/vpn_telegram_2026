@@ -195,6 +195,7 @@ _Важно: доступность ботов может меняться. Ес
 | 147 | @Buba_Top_Robot | [t.me/Buba_Top_Robot](https://t.me/Buba_Top_Robot) |
 | 148 | @vpn_spacev_bot | [t.me/vpn_spacev_bot](https://t.me/vpn_spacev_bot) |
 | 149 | @vpngeneratorbot | [t.me/vpngeneratorbot](https://t.me/vpngeneratorbot) |
+| 150 | @vasinvpn_bot | [t.me/vasinvpn_bot](https://t.me/vasinvpn_bot) |
 
 ## FAQ
 
