@@ -196,6 +196,11 @@ _Важно: доступность ботов может меняться. Ес
 | 148 | @vpn_spacev_bot | [t.me/vpn_spacev_bot](https://t.me/vpn_spacev_bot) |
 | 149 | @vpngeneratorbot | [t.me/vpngeneratorbot](https://t.me/vpngeneratorbot) |
 | 150 | @vasinvpn_bot | [t.me/vasinvpn_bot](https://t.me/vasinvpn_bot) |
+| 151 | @TriBukvyRoBot | [t.me/TriBukvyRoBot](https://t.me/TriBukvyRoBot) |
+| 152 | @FurkVPNbot | [t.me/FurkVPNbot](https://t.me/FurkVPNbot) |
+| 153 | @rkt_vpn_bot | [t.me/rkt_vpn_bot](https://t.me/rkt_vpn_bot) |
+| 154 | @FukashiBot | [t.me/FukashiBot](https://t.me/FukashiBot) |
+| 155 | @nullvpn_robot | [t.me/nullvpn_robot](https://t.me/nullvpn_robot) |
 
 ## FAQ
 
