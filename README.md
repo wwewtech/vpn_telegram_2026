@@ -1,9 +1,9 @@
 # Рабочие VPN в Telegram 2026: список ботов для России
 
-[![GitHub stars](https://img.shields.io/github/stars/wwewtech/vpn_wwew?style=social)](https://github.com/wwewtech/vpn_wwew/stargazers)
-[![Last commit](https://img.shields.io/github/last-commit/wwewtech/vpn_wwew)](https://github.com/wwewtech/vpn_wwew/commits/main)
-[![Updated](https://img.shields.io/badge/updated-2026.04-brightgreen)](https://github.com/wwewtech/vpn_wwew)
-[![PR welcome](https://img.shields.io/badge/PR-welcome-0ea5e9)](https://github.com/wwewtech/vpn_wwew/pulls)
+[![GitHub stars](https://img.shields.io/github/stars/wwewtech/vpn_telegram_2026?style=social)](https://github.com/wwewtech/vpn_telegram_2026/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/wwewtech/vpn_telegram_2026)](https://github.com/wwewtech/vpn_telegram_2026/commits/main)
+[![Updated](https://img.shields.io/badge/updated-2026.09-brightgreen)](https://github.com/wwewtech/vpn_telegram_2026)
+[![PR welcome](https://img.shields.io/badge/PR-welcome-0ea5e9)](https://github.com/wwewtech/vpn_telegram_2026/pulls)
 [![Telegram](https://img.shields.io/badge/platform-Telegram-229ED9?logo=telegram&logoColor=white)](https://telegram.org)
 
 > Актуальный каталог Telegram-ботов с VPN-доступом.
@@ -201,6 +201,56 @@ _Важно: доступность ботов может меняться. Ес
 | 153 | @rkt_vpn_bot | [t.me/rkt_vpn_bot](https://t.me/rkt_vpn_bot) |
 | 154 | @FukashiBot | [t.me/FukashiBot](https://t.me/FukashiBot) |
 | 155 | @nullvpn_robot | [t.me/nullvpn_robot](https://t.me/nullvpn_robot) |
+| 156 | @sotavpnbot | [t.me/sotavpnbot](https://t.me/sotavpnbot) |
+| 157 | @Vpn_Ghost_Robot | [t.me/Vpn_Ghost_Robot](https://t.me/Vpn_Ghost_Robot) |
+| 158 | @vpn_liberty_bot | [t.me/vpn_liberty_bot](https://t.me/vpn_liberty_bot) |
+| 159 | @ultimavpnbot | [t.me/ultimavpnbot](https://t.me/ultimavpnbot) |
+| 160 | @dino_vpnbot | [t.me/dino_vpnbot](https://t.me/dino_vpnbot) |
+| 161 | @opentunbot | [t.me/opentunbot](https://t.me/opentunbot) |
+| 162 | @nuvpnubot | [t.me/nuvpnubot](https://t.me/nuvpnubot) |
+| 163 | @VPNGooBot | [t.me/VPNGooBot](https://t.me/VPNGooBot) |
+| 164 | @Ultaclub_bot | [t.me/Ultaclub_bot](https://t.me/Ultaclub_bot) |
+| 165 | @ShadownetVPNbot | [t.me/ShadownetVPNbot](https://t.me/ShadownetVPNbot) |
+| 166 | @VANYA_VPN_BOT | [t.me/VANYA_VPN_BOT](https://t.me/VANYA_VPN_BOT) |
+| 167 | @VPNVezdehodBot | [t.me/VPNVezdehodBot](https://t.me/VPNVezdehodBot) |
+| 168 | @opengatevpn_bot | [t.me/opengatevpn_bot](https://t.me/opengatevpn_bot) |
+| 169 | @VPNhub_robot | [t.me/VPNhub_robot](https://t.me/VPNhub_robot) |
+| 170 | @opsvpnbot | [t.me/opsvpnbot](https://t.me/opsvpnbot) |
+| 171 | @friendlyvpnbot | [t.me/friendlyvpnbot](https://t.me/friendlyvpnbot) |
+| 172 | @vpneasybot | [t.me/vpneasybot](https://t.me/vpneasybot) |
+| 173 | @gammaVPN_bot | [t.me/gammaVPN_bot](https://t.me/gammaVPN_bot) |
+| 174 | @persik_vpnbot | [t.me/persik_vpnbot](https://t.me/persik_vpnbot) |
+| 175 | @CatsVPN_robot | [t.me/CatsVPN_robot](https://t.me/CatsVPN_robot) |
+| 176 | @fixvpn_bot | [t.me/fixvpn_bot](https://t.me/fixvpn_bot) |
+| 177 | @UnlockedVPNbot | [t.me/UnlockedVPNbot](https://t.me/UnlockedVPNbot) |
+| 178 | @lumovpnbot | [t.me/lumovpnbot](https://t.me/lumovpnbot) |
+| 179 | @vinnypux_vpn_bot | [t.me/vinnypux_vpn_bot](https://t.me/vinnypux_vpn_bot) |
+| 180 | @ulet_vpn_bot | [t.me/ulet_vpn_bot](https://t.me/ulet_vpn_bot) |
+| 181 | @getvpn | [t.me/getvpn](https://t.me/getvpn) |
+| 182 | @nebo_vpn_bot | [t.me/nebo_vpn_bot](https://t.me/nebo_vpn_bot) |
+| 183 | @GhostGramVPN_Bot | [t.me/GhostGramVPN_Bot](https://t.me/GhostGramVPN_Bot) |
+| 184 | @Moriartyvpnbot | [t.me/Moriartyvpnbot](https://t.me/Moriartyvpnbot) |
+| 185 | @space_tunnel_bot | [t.me/space_tunnel_bot](https://t.me/space_tunnel_bot) |
+| 186 | @paper_vpn_bot | [t.me/paper_vpn_bot](https://t.me/paper_vpn_bot) |
+| 187 | @BlancVPNBot | [t.me/BlancVPNBot](https://t.me/BlancVPNBot) |
+| 188 | @divevpn_bot | [t.me/divevpn_bot](https://t.me/divevpn_bot) |
+| 189 | @barbos_vpn_bot | [t.me/barbos_vpn_bot](https://t.me/barbos_vpn_bot) |
+| 190 | @choosevpn_bot | [t.me/choosevpn_bot](https://t.me/choosevpn_bot) |
+| 191 | @gramadsvpnbot | [t.me/gramadsvpnbot](https://t.me/gramadsvpnbot) |
+| 192 | @vpnsave | [t.me/vpnsave](https://t.me/vpnsave) |
+| 193 | @SlippyVPNbot | [t.me/SlippyVPNbot](https://t.me/SlippyVPNbot) |
+| 194 | @ventravpn_bot | [t.me/ventravpn_bot](https://t.me/ventravpn_bot) |
+| 195 | @happpvpnbot | [t.me/happpvpnbot](https://t.me/happpvpnbot) |
+| 196 | @happ_vpns_robot | [t.me/happ_vpns_robot](https://t.me/happ_vpns_robot) |
+| 197 | @yavpn_robot | [t.me/yavpn_robot](https://t.me/yavpn_robot) |
+| 198 | @Gen_vpnbot | [t.me/Gen_vpnbot](https://t.me/Gen_vpnbot) |
+| 199 | @Vpn_best_price_bot | [t.me/Vpn_best_price_bot](https://t.me/Vpn_best_price_bot) |
+| 200 | @vless_vpn_shop_bot | [t.me/vless_vpn_shop_bot](https://t.me/vless_vpn_shop_bot) |
+| 201 | @You_vpn_bot | [t.me/You_vpn_bot](https://t.me/You_vpn_bot) |
+| 202 | @YoutuberVPN_bot | [t.me/YoutuberVPN_bot](https://t.me/YoutuberVPN_bot) |
+| 203 | @ma3x_vpn_bot | [t.me/ma3x_vpn_bot](https://t.me/ma3x_vpn_bot) |
+| 204 | @OutlineKeysRobot | [t.me/OutlineKeysRobot](https://t.me/OutlineKeysRobot) |
+| 205 | @Top_Vpn_shop_bot | [t.me/Top_Vpn_shop_bot](https://t.me/Top_Vpn_shop_bot) |
 
 ## FAQ
 
