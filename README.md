@@ -251,6 +251,8 @@ _Важно: доступность ботов может меняться. Ес
 | 203 | @ma3x_vpn_bot | [t.me/ma3x_vpn_bot](https://t.me/ma3x_vpn_bot) |
 | 204 | @OutlineKeysRobot | [t.me/OutlineKeysRobot](https://t.me/OutlineKeysRobot) |
 | 205 | @Top_Vpn_shop_bot | [t.me/Top_Vpn_shop_bot](https://t.me/Top_Vpn_shop_bot) |
+| 206 | @myartvpn_bot | [t.me/myartvpn_bot](https://t.me/myartvpn_bot?start=src_cat_gh_wwew) |
+
 
 ## FAQ
 
