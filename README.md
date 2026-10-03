@@ -252,6 +252,7 @@ _Важно: доступность ботов может меняться. Ес
 | 204 | @OutlineKeysRobot | [t.me/OutlineKeysRobot](https://t.me/OutlineKeysRobot) |
 | 205 | @Top_Vpn_shop_bot | [t.me/Top_Vpn_shop_bot](https://t.me/Top_Vpn_shop_bot) |
 | 206 | @myartvpn_bot | [t.me/myartvpn_bot](https://t.me/myartvpn_bot?start=src_cat_gh_wwew) |
+| 207 | @IsoraVPN_bot | [t.me/IsoraVPN_bot](https://t.me/IsoraVPN_bot) |
 
 
 ## FAQ
