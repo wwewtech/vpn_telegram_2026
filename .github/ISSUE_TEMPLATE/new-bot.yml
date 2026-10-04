@@ -1,0 +1,46 @@
+name: "➕ Новый бот"
+description: Предложить VPN-бота для добавления в каталог
+title: "[new-bot] @"
+labels: ["new-bot"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо! Самый быстрый путь — сразу Pull Request: добавьте запись в `data/bots.json` и выполните
+        `node scripts/generate-readme.mjs`. Подробности — в [CONTRIBUTING.md](https://github.com/wwewtech/vpn_telegram_2026/blob/main/CONTRIBUTING.md).
+  - type: input
+    id: bot
+    attributes:
+      label: Хендл бота
+      description: Юзернейм без @, как в Telegram
+      placeholder: example_vpn_bot
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Что умеет бот
+      options:
+        - VPN (VLESS/Reality, Xray)
+        - VPN (WireGuard, AmneziaWG)
+        - VPN (Outline/Shadowsocks)
+        - Прокси (MTProto/socks5)
+        - Другое
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Почему стоит добавить
+      description: Протоколы, цены, оплата (СБП/карты РФ/крипта), тестовый доступ — всё, что поможет проверить заявку.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Перед отправкой
+      options:
+        - label: Я проверил(а), что бот открывается и работает
+          required: true
+        - label: Бота нет в текущем списке (проверил(а) поиском по data/bots.json)
+          required: true

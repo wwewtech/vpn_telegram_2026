@@ -1,0 +1,2 @@
+# Единые окончания строк: LF и в репозитории, и в рабочей копии (Windows/macOS/Linux).
+* text=auto eol=lf

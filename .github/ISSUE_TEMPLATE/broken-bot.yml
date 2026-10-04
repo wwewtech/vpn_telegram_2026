@@ -1,0 +1,37 @@
+name: "⚠️ Нерабочий бот"
+description: Сообщить о боте, который не открывается или перестал работать
+title: "[broken] @"
+labels: ["broken"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо! Перед отправкой, пожалуйста, перепроверьте бота через пару минут — бывают временные сбои.
+        Если можете, приложите скриншот или текст ошибки — это ускорит проверку.
+  - type: input
+    id: bot
+    attributes:
+      label: Хендл бота
+      description: Юзернейм из таблицы README, например IsoraVPN_bot
+      placeholder: IsoraVPN_bot
+    validations:
+      required: true
+  - type: dropdown
+    id: problem
+    attributes:
+      label: Что не работает?
+      options:
+        - Бот не открывается
+        - Бот отвечает ошибкой
+        - Бот не выдаёт конфиг или подписку
+        - VPN или прокси не подключается
+        - Другое
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Подробности
+      description: Когда проверяли, что именно происходило, скриншоты.
+    validations:
+      required: false
