@@ -151,6 +151,7 @@ test('extractOgTitle: имя живого бота и контакт-заглу�
   assert.equal(extractOgTitle(LIVE_HTML), 'BotFather');
   assert.equal(extractOgTitle(DEAD_HTML), 'Telegram: Contact @zzz_dead_bot_2026_xyz');
   assert.equal(extractOgTitle('<html></html>'), '');
+  assert.equal(extractOgTitle('no meta tags at all'), '');
 });
 
 test('isMissingBotPage: мёртвый хендл при точном совпадении, без учёта регистра', () => {
