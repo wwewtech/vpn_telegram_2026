@@ -1,5 +1,7 @@
 # Рабочие VPN в Telegram 2026: список ботов для России
 
+[English version](README_EN.md)
+
 [![GitHub stars](https://img.shields.io/github/stars/wwewtech/vpn_telegram_2026?style=social)](https://github.com/wwewtech/vpn_telegram_2026/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/wwewtech/vpn_telegram_2026)](https://github.com/wwewtech/vpn_telegram_2026/commits/main)
 [![Updated](https://img.shields.io/badge/updated-2026.10-brightgreen)](https://github.com/wwewtech/vpn_telegram_2026)
