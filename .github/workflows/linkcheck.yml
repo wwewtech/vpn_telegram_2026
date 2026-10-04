@@ -1,0 +1,49 @@
+name: Link check
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: linkcheck
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check t.me links and report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+
+      - name: Run link checker
+        run: node scripts/check-links.mjs --out link-report.md
+
+      - name: Open or update issue when dead links are found
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Автопроверка: возможно нерабочие боты"
+          ISSUE=$(gh issue list --state open --search "Автопроверка in:title" --json number --jq '.[0].number')
+          if [ -s link-report.md ]; then
+            if [ -n "$ISSUE" ]; then
+              gh issue comment "$ISSUE" --body-file link-report.md
+            else
+              gh issue create --title "$TITLE" --body-file link-report.md --label broken
+            fi
+          else
+            echo "Мёртвых ссылок нет."
+            if [ -n "$ISSUE" ]; then
+              gh issue comment "$ISSUE" --body "Обновление: все ссылки доступны ✅" && gh issue close "$ISSUE"
+            fi
+          fi

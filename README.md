@@ -188,7 +188,7 @@ _Важно: доступность ботов может меняться. Ес
 | 137 | @telegavpn_bot | [t.me/telegavpn_bot](https://t.me/telegavpn_bot) |
 | 138 | @teleproxer_bot | [t.me/teleproxer_bot](https://t.me/teleproxer_bot) |
 | 139 | @TipTopNet_VPN_bot | [t.me/TipTopNet_VPN_bot](https://t.me/TipTopNet_VPN_bot) |
-| 140 | @to_aliusvpn_bo | [t.me/to_aliusvpn_bo](https://t.me/to_aliusvpn_bo) |
+| 140 | @to_aliusvpn_bot | [t.me/to_aliusvpn_bot](https://t.me/to_aliusvpn_bot) |
 | 141 | @tonplay_proxybot | [t.me/tonplay_proxybot](https://t.me/tonplay_proxybot) |
 | 142 | @tonvpn_bot | [t.me/tonvpn_bot](https://t.me/tonvpn_bot) |
 | 143 | @Top_Vpn_shop_bot | [t.me/Top_Vpn_shop_bot](https://t.me/Top_Vpn_shop_bot) |

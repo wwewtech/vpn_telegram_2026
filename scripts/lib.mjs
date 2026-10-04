@@ -61,6 +61,19 @@ export function serializeBots(bots) {
   return `[\n${lines.join(',\n')}\n]\n`;
 }
 
+// og:title со страницы t.me/<handle> ("BotFather" у живых, "Telegram: Contact @x" у мёртвых).
+export function extractOgTitle(html) {
+  const match = String(html).match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']*)["']/i);
+  return match ? match[1].trim() : '';
+}
+
+// Страница t.me/<handle> принадлежит несуществующему юзернейму, если og:title имеет вид
+// "Telegram: Contact @handle" — точное сравнение (без учёта регистра) с запрошенным хендлом.
+export function isMissingBotPage(html, handle) {
+  const expected = `telegram: contact @${String(handle).toLowerCase()}`;
+  return extractOgTitle(html).toLowerCase() === expected;
+}
+
 export function isWellFormed(bots) {
   return bots.every(
     (bot) => bot !== null && typeof bot === 'object' && !Array.isArray(bot) && typeof bot.handle === 'string',
