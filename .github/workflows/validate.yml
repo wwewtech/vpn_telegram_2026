@@ -21,8 +21,8 @@ jobs:
         with:
           node-version: 24
 
-      - name: Validate data/bots.json
+      - name: Validate data, sorting and links
         run: node scripts/validate.mjs
 
-      - name: Check that README.md is regenerated
+      - name: Check that README.md is regenerated and sorted
         run: node scripts/generate-readme.mjs --check
