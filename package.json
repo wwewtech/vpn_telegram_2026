@@ -10,6 +10,7 @@
     "generate": "node scripts/generate-readme.mjs",
     "fix": "node scripts/sort-bots.mjs && node scripts/generate-readme.mjs",
     "validate": "node scripts/validate.mjs",
+    "test": "node --test",
     "check": "node scripts/validate.mjs && node scripts/generate-readme.mjs --check"
   },
   "engines": {

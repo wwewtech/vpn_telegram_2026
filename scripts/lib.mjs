@@ -1,4 +1,5 @@
-// Общие утилиты для скриптов каталога: пути, чтение данных, сортировка, сериализация.
+// Общие утилиты для скриптов каталога: пути, чтение данных, сортировка,
+// сериализация, сборка таблицы, проверки и обновление README.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +13,7 @@ export const END = '<!-- BOTS:END -->';
 export const BADGE = /(updated-)(\d{4})\.(\d{2})(-brightgreen)/;
 
 export const HANDLE_RE = /^[A-Za-z0-9_]{5,32}$/;
+export const REF_LINK_RE = /https?:\/\/t\.me\/[^\s)\]]*\?[^\s)\]]*/;
 
 export function loadBots() {
   let data;
@@ -56,4 +58,95 @@ export function serializeBots(bots) {
     return `  { ${fields.join(', ')} }`;
   });
   return `[\n${lines.join(',\n')}\n]\n`;
+}
+
+export function isWellFormed(bots) {
+  return bots.every(
+    (bot) => bot !== null && typeof bot === 'object' && !Array.isArray(bot) && typeof bot.handle === 'string',
+  );
+}
+
+// Таблица README: нумерация и ссылки собираются только из хендла — реферальных параметров не бывает.
+export function buildTable(bots) {
+  const rows = bots.map(
+    (bot, index) => `| ${index + 1} | @${bot.handle} | [t.me/${bot.handle}](https://t.me/${bot.handle}) |`,
+  );
+  return ['| # | Бот | Ссылка |', '| --- | --- | --- |', ...rows].join('\n');
+}
+
+function findRegion(source) {
+  const startIndex = source.indexOf(START);
+  const endIndex = source.indexOf(END);
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) return null;
+  return { regionStart: startIndex + START.length, regionEnd: endIndex };
+}
+
+// Обновляет таблицу между маркерами и бейдж updated-YYYY.MM. Чистая функция, файлы не пишет.
+export function renderUpdatedReadme(source, bots, date = new Date()) {
+  const region = findRegion(source);
+  if (!region) {
+    throw new Error('в README.md не найдены маркеры <!-- BOTS:START --> / <!-- BOTS:END -->');
+  }
+  const newRegion = `\n${buildTable(bots)}\n`;
+  const oldRegion = source.slice(region.regionStart, region.regionEnd);
+  if (oldRegion === newRegion) {
+    return { updated: source, changed: false };
+  }
+  let updated = source.slice(0, region.regionStart) + newRegion + source.slice(region.regionEnd);
+  const stamp = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
+  updated = updated.replace(BADGE, (match, prefix, year, month, suffix) => `${prefix}${stamp}${suffix}`);
+  return { updated, changed: true };
+}
+
+// Все проверки data/bots.json и README.md: возвращает список проблем (пустой список = всё хорошо).
+export function collectProblems(bots, readmeText) {
+  const problems = [];
+  const seen = new Map();
+  let wellFormed = true;
+
+  bots.forEach((bot, index) => {
+    const position = `bots[${index}]`;
+    if (typeof bot !== 'object' || bot === null || Array.isArray(bot)) {
+      problems.push(`${position}: запись должна быть объектом вида { "handle": "..." }`);
+      wellFormed = false;
+      return;
+    }
+    const extraKeys = Object.keys(bot).filter((key) => key !== 'handle');
+    if (extraKeys.length > 0) {
+      problems.push(`${position}: неизвестные поля: ${extraKeys.join(', ')} (допустимо только "handle")`);
+      wellFormed = false;
+    }
+    if (typeof bot.handle !== 'string') {
+      problems.push(`${position}: поле "handle" обязательно и должно быть строкой`);
+      wellFormed = false;
+      return;
+    }
+    if (!HANDLE_RE.test(bot.handle)) {
+      problems.push(`${position}: хендл "@${bot.handle}" не похож на username Telegram (5-32 символа: A-Z, a-z, 0-9, _)`);
+    }
+    const key = bot.handle.toLowerCase();
+    if (seen.has(key)) {
+      problems.push(`${position}: дубликат "@${bot.handle}" (уже есть запись №${seen.get(key)})`);
+    } else {
+      seen.set(key, index + 1);
+    }
+  });
+
+  if (wellFormed) {
+    const sorted = sortBots(bots);
+    const outOfOrder = bots.findIndex((bot, index) => bot !== sorted[index]);
+    if (outOfOrder !== -1) {
+      problems.push(
+        `список не отсортирован по алфавиту: на позиции №${outOfOrder + 1} стоит "@${bots[outOfOrder].handle}", ` +
+          `ожидается "@${sorted[outOfOrder].handle}". Запустите: npm run fix`,
+      );
+    }
+  }
+
+  const refLink = readmeText.match(REF_LINK_RE);
+  if (refLink) {
+    problems.push(`в README.md найдена ссылка с параметрами (реферальные и трекинговые запрещены): ${refLink[0]}`);
+  }
+
+  return problems;
 }
