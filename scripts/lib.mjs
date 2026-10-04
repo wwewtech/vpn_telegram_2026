@@ -13,6 +13,7 @@ export const END = '<!-- BOTS:END -->';
 export const BADGE = /(updated-)(\d{4})\.(\d{2})(-brightgreen)/;
 
 export const HANDLE_RE = /^[A-Za-z0-9_]{5,32}$/;
+export const VERIFIED_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 export const REF_LINK_RE = /https?:\/\/t\.me\/[^\s)\]]*\?[^\s)\]]*/;
 
 export function loadBots() {
@@ -67,11 +68,18 @@ export function isWellFormed(bots) {
 }
 
 // Таблица README: нумерация и ссылки собираются только из хендла — реферальных параметров не бывает.
+// Колонка «Проверено» появляется, когда хотя бы у одной записи заполнено поле "verified".
 export function buildTable(bots) {
-  const rows = bots.map(
-    (bot, index) => `| ${index + 1} | @${bot.handle} | [t.me/${bot.handle}](https://t.me/${bot.handle}) |`,
-  );
-  return ['| # | Бот | Ссылка |', '| --- | --- | --- |', ...rows].join('\n');
+  const withVerified = bots.some((bot) => typeof bot.verified === 'string');
+  const rows = bots.map((bot, index) => {
+    const link = `[t.me/${bot.handle}](https://t.me/${bot.handle})`;
+    if (!withVerified) return `| ${index + 1} | @${bot.handle} | ${link} |`;
+    const verified = typeof bot.verified === 'string' ? bot.verified : '—';
+    return `| ${index + 1} | @${bot.handle} | ${verified} | ${link} |`;
+  });
+  const header = withVerified ? '| # | Бот | Проверено | Ссылка |' : '| # | Бот | Ссылка |';
+  const separator = withVerified ? '| --- | --- | --- | --- |' : '| --- | --- | --- |';
+  return [header, separator, ...rows].join('\n');
 }
 
 function findRegion(source) {
@@ -111,10 +119,13 @@ export function collectProblems(bots, readmeText) {
       wellFormed = false;
       return;
     }
-    const extraKeys = Object.keys(bot).filter((key) => key !== 'handle');
+    const extraKeys = Object.keys(bot).filter((key) => key !== 'handle' && key !== 'verified');
     if (extraKeys.length > 0) {
-      problems.push(`${position}: неизвестные поля: ${extraKeys.join(', ')} (допустимо только "handle")`);
+      problems.push(`${position}: неизвестные поля: ${extraKeys.join(', ')} (допустимы только "handle" и "verified")`);
       wellFormed = false;
+    }
+    if (bot.verified !== undefined && (typeof bot.verified !== 'string' || !VERIFIED_RE.test(bot.verified))) {
+      problems.push(`${position}: поле "verified" должно быть строкой формата YYYY-MM (например, "2026-10")`);
     }
     if (typeof bot.handle !== 'string') {
       problems.push(`${position}: поле "handle" обязательно и должно быть строкой`);

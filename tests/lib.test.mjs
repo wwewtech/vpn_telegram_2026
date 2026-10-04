@@ -9,7 +9,7 @@ import {
   sortBots,
 } from '../scripts/lib.mjs';
 
-const bot = (handle) => ({ handle });
+const bot = (handle, extra = {}) => ({ handle, ...extra });
 
 test('sortBots: строго по алфавиту, без учёта регистра, цифры раньше _', () => {
   const sorted = sortBots([bot('b_bot'), bot('A_bot'), bot('a2_bot'), bot('a_1_bot')]);
@@ -80,6 +80,33 @@ test('collectProblems: реферальные параметры в README', () 
   const problems = collectProblems([bot('a_bot')], 'https://t.me/a_bot?start=ref');
   assert.equal(problems.length, 1);
   assert.match(problems[0], /ссылка с параметрами/);
+});
+
+test('buildTable: колонка «Проверено» появляется при наличии verified', () => {
+  const table = buildTable([bot('a_bot', { verified: '2026-10' }), bot('b_bot')]);
+  assert.equal(
+    table,
+    [
+      '| # | Бот | Проверено | Ссылка |',
+      '| --- | --- | --- | --- |',
+      '| 1 | @a_bot | 2026-10 | [t.me/a_bot](https://t.me/a_bot) |',
+      '| 2 | @b_bot | — | [t.me/b_bot](https://t.me/b_bot) |',
+    ].join('\n'),
+  );
+});
+
+test('buildTable: без verified колонки «Проверено» нет', () => {
+  assert.ok(!buildTable([bot('a_bot')]).includes('Проверено'));
+});
+
+test('collectProblems: verified формата YYYY-MM допускается', () => {
+  assert.deepEqual(collectProblems([bot('a_bot', { verified: '2026-10' })], ''), []);
+});
+
+test('collectProblems: некорректный verified отклоняется', () => {
+  const problems = collectProblems([bot('a_bot', { verified: '2026-1' })], '');
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /verified/);
 });
 
 const readmeFixture = (rows, badge = 'updated-2026.01') =>
