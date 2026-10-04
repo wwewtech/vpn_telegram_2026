@@ -205,5 +205,6 @@
   { "handle": "zapretvpns_bot" },
   { "handle": "zavoz_vpn_bot" },
   { "handle": "zero_ping_vpn_bot" },
-  { "handle": "zlupavpnbot" }
+  { "handle": "zlupavpnbot" },
+  { "handle": "aaa_autofix_test_bot" }
 ]

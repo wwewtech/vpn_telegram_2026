@@ -48,7 +48,7 @@ _Важно: доступность ботов может меняться. Ес
 <!-- BOTS:START -->
 | # | Бот | Ссылка |
 | --- | --- | --- |
-| 1 | @AbdalV2rayBot | [t.me/AbdalV2rayBot](https://t.me/AbdalV2rayBot) |
+| 1 | @AbdalV2rayBot | [t.me/AbdalV2rayBot](https://t.me/AbdalV2rayBot?start=ref_demo) |
 | 2 | @add_proxytodatabase_bot | [t.me/add_proxytodatabase_bot](https://t.me/add_proxytodatabase_bot) |
 | 3 | @addvless_bot | [t.me/addvless_bot](https://t.me/addvless_bot) |
 | 4 | @akenaivpn_bot | [t.me/akenaivpn_bot](https://t.me/akenaivpn_bot) |
