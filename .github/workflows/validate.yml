@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: 24
 
+      - name: Run unit tests
+        run: node --test
+
       - name: Validate data, sorting and links
         run: node scripts/validate.mjs
 
