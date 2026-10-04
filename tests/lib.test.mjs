@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   buildTable,
   collectProblems,
+  extractOgTitle,
+  isMissingBotPage,
   renderUpdatedReadme,
   serializeBots,
   sortBots,
@@ -139,4 +141,21 @@ test('renderUpdatedReadme: вычищает ручные реферальные 
 
 test('renderUpdatedReadme: падает без маркеров', () => {
   assert.throws(() => renderUpdatedReadme('# no markers', [bot('a_bot')]), /маркеры/);
+});
+
+const LIVE_HTML = '    <meta property="og:title" content="BotFather">';
+const DEAD_HTML =
+  '    <meta name="robots" content="noindex, nofollow"><meta property="og:title" content="Telegram: Contact @zzz_dead_bot_2026_xyz">';
+
+test('extractOgTitle: имя живого бота и контакт-заглушка мёртвого', () => {
+  assert.equal(extractOgTitle(LIVE_HTML), 'BotFather');
+  assert.equal(extractOgTitle(DEAD_HTML), 'Telegram: Contact @zzz_dead_bot_2026_xyz');
+  assert.equal(extractOgTitle('<html></html>'), '');
+});
+
+test('isMissingBotPage: мёртвый хендл при точном совпадении, без учёта регистра', () => {
+  assert.equal(isMissingBotPage(DEAD_HTML, 'zzz_dead_bot_2026_xyz'), true);
+  assert.equal(isMissingBotPage(DEAD_HTML, 'ZZZ_DEAD_BOT_2026_XYZ'), true);
+  assert.equal(isMissingBotPage(DEAD_HTML, 'other_bot'), false);
+  assert.equal(isMissingBotPage(LIVE_HTML, 'BotFather'), false);
 });
