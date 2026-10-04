@@ -430,6 +430,10 @@ _Таблица генерируется из [`data/bots.json`](data/bots.json)
 - Проверка живости ссылок выполняется автоматически (`scripts/check-links.mjs`).
 - Список доступных регионов и протоколов может меняться — проверяйте у конкретного бота.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=wwewtech/vpn_telegram_2026&type=timeline)](https://www.star-history.com/#wwewtech/vpn_telegram_2026&timeline)
+
 ## Disclaimer
 
 Этот репозиторий носит информационный характер.

@@ -74,6 +74,10 @@ Details: [CONTRIBUTING.md](CONTRIBUTING.md). Issues: [broken bot / new bot templ
 
 > **Like this list?** Star the repo ⭐ — it keeps the project alive and visible in GitHub search.
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=wwewtech/vpn_telegram_2026&type=timeline)](https://www.star-history.com/#wwewtech/vpn_telegram_2026&timeline)
+
 ## Disclaimer
 
 Informational purposes only. The author is not affiliated with the listed bots and does not guarantee availability, safety or service quality. Use any service at your own risk.
