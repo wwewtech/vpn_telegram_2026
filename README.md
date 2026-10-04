@@ -2,7 +2,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/wwewtech/vpn_telegram_2026?style=social)](https://github.com/wwewtech/vpn_telegram_2026/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/wwewtech/vpn_telegram_2026)](https://github.com/wwewtech/vpn_telegram_2026/commits/main)
-[![Updated](https://img.shields.io/badge/updated-2026.09-brightgreen)](https://github.com/wwewtech/vpn_telegram_2026)
+[![Updated](https://img.shields.io/badge/updated-2026.10-brightgreen)](https://github.com/wwewtech/vpn_telegram_2026)
 [![PR welcome](https://img.shields.io/badge/PR-welcome-0ea5e9)](https://github.com/wwewtech/vpn_telegram_2026/pulls)
 [![Telegram](https://img.shields.io/badge/platform-Telegram-229ED9?logo=telegram&logoColor=white)](https://telegram.org)
 
@@ -44,6 +44,8 @@
 
 _Важно: доступность ботов может меняться. Если один не работает, переходите к следующему._
 
+<!-- Таблица ниже генерируется из data/bots.json. Не редактируйте её вручную — см. CONTRIBUTING.md. -->
+<!-- BOTS:START -->
 | # | Бот | Ссылка |
 | --- | --- | --- |
 | 1 | @IsoraVPN_bot | [t.me/IsoraVPN_bot](https://t.me/IsoraVPN_bot) |
@@ -252,8 +254,10 @@ _Важно: доступность ботов может меняться. Ес
 | 204 | @ma3x_vpn_bot | [t.me/ma3x_vpn_bot](https://t.me/ma3x_vpn_bot) |
 | 205 | @OutlineKeysRobot | [t.me/OutlineKeysRobot](https://t.me/OutlineKeysRobot) |
 | 206 | @Top_Vpn_shop_bot | [t.me/Top_Vpn_shop_bot](https://t.me/Top_Vpn_shop_bot) |
-| 207 | @myartvpn_bot | [t.me/myartvpn_bot](https://t.me/myartvpn_bot?start=src_cat_gh_wwew) |
+| 207 | @myartvpn_bot | [t.me/myartvpn_bot](https://t.me/myartvpn_bot) |
+<!-- BOTS:END -->
 
+_Таблица генерируется из [`data/bots.json`](data/bots.json). Как добавить бота — см. [CONTRIBUTING.md](CONTRIBUTING.md)._
 
 ## FAQ
 
@@ -401,16 +405,16 @@ _Важно: доступность ботов может меняться. Ес
 
 - Поставьте Star репозиторию.
 - Добавьте репозиторий в закладки и поделитесь ссылкой в тематических чатах.
-- Если нашли нерабочего бота, откройте Issue с пометкой `broken`.
-- Если нашли нового бота, откройте PR с пометкой `new-bot`.
+- Если нашли нерабочего бота — откройте Issue по шаблону «Нерабочий бот» (метка `broken`).
+- Если нашли нового бота — откройте PR по шаблону «Новый бот» (метка `new-bot`) или добавьте запись в `data/bots.json`.
 
 ## Как помочь проекту
 
 1. Сделайте Fork.
-2. Обновите README: добавьте новых ботов или отметьте неактуальных.
-3. Откройте Pull Request с коротким описанием изменений.
+2. Добавьте бота в `data/bots.json` (или удалите нерабочего) — таблица и нумерация в README пересоберутся автоматически.
+3. Запустите `node scripts/generate-readme.mjs` и откройте Pull Request с коротким описанием изменений.
 
-Приветствуются правки по структуре, форматированию и валидации ссылок.
+Подробная инструкция — в [CONTRIBUTING.md](CONTRIBUTING.md). Приветствуются правки по структуре, форматированию и валидации ссылок.
 
 ## Disclaimer
 
