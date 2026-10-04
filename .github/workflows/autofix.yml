@@ -1,0 +1,44 @@
+name: Autofix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: autofix-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    name: Sort and regenerate (best effort)
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Sort bots and regenerate README
+        run: npm run fix
+
+      - name: Commit and push if something changed
+        run: |
+          if git diff --quiet; then
+            echo "Изменений нет: data/bots.json отсортирован, README актуален."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/bots.json README.md
+          git commit -m "chore: auto-sort bots and regenerate README [skip ci]"
+          git push origin HEAD:${{ github.head_ref || github.ref_name }}

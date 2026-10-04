@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Спасибо! Самый быстрый путь — сразу Pull Request: добавьте запись в `data/bots.json` и выполните
-        `node scripts/generate-readme.mjs`. Подробности — в [CONTRIBUTING.md](https://github.com/wwewtech/vpn_telegram_2026/blob/main/CONTRIBUTING.md).
+        `npm run fix` (сортировка + пересборка README). Подробности — в [CONTRIBUTING.md](https://github.com/wwewtech/vpn_telegram_2026/blob/main/CONTRIBUTING.md).
   - type: input
     id: bot
     attributes:

@@ -4,36 +4,16 @@
 //   node scripts/generate-readme.mjs          — перегенерировать README.md;
 //   node scripts/generate-readme.mjs --check  — проверить актуальность без записи (exit 1, если README устарел).
 //
-// Таблица находится между маркерами <!-- BOTS:START --> и <!-- BOTS:END -->.
+// Таблица находится между маркерами <!-- BOTS:START --> и <!-- BOTS:END -->,
+// всегда отсортирована строго по алфавиту и собирается только из data/bots.json:
+// любые ручные правки таблицы (включая реферальные параметры) будут перезаписаны.
 // Бейдж updated-YYYY.MM обновляется автоматически в момент изменения таблицы.
 import { readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const README_PATH = path.join(ROOT, 'README.md');
-const DATA_PATH = path.join(ROOT, 'data', 'bots.json');
-
-const START = '<!-- BOTS:START -->';
-const END = '<!-- BOTS:END -->';
-const BADGE = /(updated-)(\d{4})\.(\d{2})(-brightgreen)/;
+import { BADGE, END, README_PATH, START, loadBots, sortBots } from './lib.mjs';
 
 function fail(message) {
   console.error(`Ошибка: ${message}`);
   process.exit(1);
-}
-
-function loadBots() {
-  let data;
-  try {
-    data = JSON.parse(readFileSync(DATA_PATH, 'utf8'));
-  } catch (error) {
-    fail(`не удалось прочитать data/bots.json: ${error.message}`);
-  }
-  if (!Array.isArray(data) || data.length === 0) {
-    fail('data/bots.json должен быть непустым массивом объектов вида { "handle": "..." }');
-  }
-  return data;
 }
 
 function buildTable(bots) {
@@ -43,9 +23,20 @@ function buildTable(bots) {
   return ['| # | Бот | Ссылка |', '| --- | --- | --- |', ...rows].join('\n');
 }
 
-const bots = loadBots();
-const table = buildTable(bots);
+let bots;
+try {
+  bots = sortBots(loadBots());
+} catch (error) {
+  fail(error.message);
+}
 
+for (const bot of bots) {
+  if (bot === null || typeof bot !== 'object' || typeof bot.handle !== 'string') {
+    fail('в data/bots.json есть записи без строкового поля "handle" — запустите npm run validate, чтобы увидеть детали');
+  }
+}
+
+const table = buildTable(bots);
 const source = readFileSync(README_PATH, 'utf8').replace(/\r\n/g, '\n');
 const startIndex = source.indexOf(START);
 const endIndex = source.indexOf(END);
@@ -72,13 +63,13 @@ if (oldRegion !== newRegion) {
 }
 
 if (updated === source) {
-  console.log(`OK: README.md актуален (${bots.length} ботов).`);
+  console.log(`OK: README.md актуален (${bots.length} ботов, сортировка по алфавиту).`);
   process.exit(0);
 }
 
 if (process.argv.includes('--check')) {
-  fail('README.md отличается от data/bots.json. Запустите: node scripts/generate-readme.mjs');
+  fail('README.md отличается от data/bots.json. Запустите: npm run fix');
 }
 
 writeFileSync(README_PATH, updated, 'utf8');
-console.log(`Готово: таблица перегенерирована (${bots.length} ботов).`);
+console.log(`Готово: таблица перегенерирована и отсортирована по алфавиту (${bots.length} ботов).`);
