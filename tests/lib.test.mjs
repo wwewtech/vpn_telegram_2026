@@ -7,6 +7,7 @@ import {
   extractOgTitle,
   isMissingBotPage,
   renderUpdatedReadme,
+  renderUpdatedReadmeEn,
   serializeBots,
   sortBots,
 } from '../scripts/lib.mjs';
@@ -159,4 +160,37 @@ test('isMissingBotPage: мёртвый хендл при точном совпа
   assert.equal(isMissingBotPage(DEAD_HTML, 'ZZZ_DEAD_BOT_2026_XYZ'), true);
   assert.equal(isMissingBotPage(DEAD_HTML, 'other_bot'), false);
   assert.equal(isMissingBotPage(LIVE_HTML, 'BotFather'), false);
+});
+
+const readmeEnFixture = (badge = 'updated-2026.01', ...counts) =>
+  `# Title\n\n[![Updated](https://img.shields.io/badge/${badge}-brightgreen)](x)\n` +
+  counts.map((c) => `\nText with ${c} bots and ${c} VPN bots.\n`).join('') +
+  `\nTail\n`;
+
+test('renderUpdatedReadmeEn: обновляет бейдж и метки числа ботов', () => {
+  const source = readmeEnFixture('updated-2026.01', '100+', '100+');
+  const { updated, changed } = renderUpdatedReadmeEn(
+    source,
+    Array.from({ length: 203 }, (_, i) => bot(`b${String(i).padStart(2, '0')}_bot`)),
+    '2026.10',
+  );
+  assert.equal(changed, true);
+  assert.ok(updated.includes('updated-2026.10-brightgreen'));
+  assert.ok(updated.includes('200+ bots'));
+  assert.ok(updated.includes('200+ VPN bots'));
+  assert.ok(!updated.includes('100+'));
+});
+
+test('renderUpdatedReadmeEn: идемпотентность — одинаковый stamp не меняет файл', () => {
+  const bots = Array.from({ length: 203 }, (_, i) => bot(`b${String(i).padStart(2, '0')}_bot`));
+  const stale = readmeEnFixture('updated-2026.01', '100+', '100+');
+  const first = renderUpdatedReadmeEn(stale, bots, '2026.10');
+  const second = renderUpdatedReadmeEn(first.updated, bots, '2026.10');
+  assert.equal(first.changed, true);
+  assert.deepEqual(second, { updated: first.updated, changed: false });
+});
+
+test('renderUpdatedReadmeEn: без файла (present=false) — текст не меняется', () => {
+  const result = renderUpdatedReadmeEn('anything', [bot('a_bot')], '2026.10', false);
+  assert.deepEqual(result, { updated: 'anything', changed: false });
 });

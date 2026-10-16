@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const README_PATH = path.join(ROOT, 'README.md');
+export const README_EN_PATH = path.join(ROOT, 'README_EN.md');
 export const DATA_PATH = path.join(ROOT, 'data', 'bots.json');
 
 export const START = '<!-- BOTS:START -->';
@@ -117,6 +118,29 @@ export function renderUpdatedReadme(source, bots, date = new Date()) {
   const stamp = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
   updated = updated.replace(BADGE, (match, prefix, year, month, suffix) => `${prefix}${stamp}${suffix}`);
   return { updated, changed: true };
+}
+
+// Грубое число ботов для README_EN.md: «200+», «300+» и т.д. (округление вниз до сотни).
+export function botsRoundFloor(bots) {
+  return `${Math.floor(bots.length / 100) * 100}+`;
+}
+
+const EN_COUNT_RES = [/\b\d+\+\s+bots\b/gi, /\b\d+\+\s+VPN\s+bots\b/gi];
+
+// Синхронизирует README_EN.md с данными: бейдж updated-YYYY.MM (stamp — значение
+// бейджа из основного README, «YYYY.MM») и метки вида «200+ bots».
+// Чистая функция, файлы не пишет. Идемпотентна: stamp приходит из основного README
+// и меняется только вместе с ним, поэтому при неизменных данных файл не меняется.
+// Если файла нет — возвращает source без изменений.
+export function renderUpdatedReadmeEn(source, bots, stamp, present = true) {
+  if (!present) return { updated: source, changed: false };
+  const rough = botsRoundFloor(bots);
+  let updated = source.replace(BADGE, (match, prefix, year, month, suffix) => `${prefix}${stamp}${suffix}`);
+  updated = EN_COUNT_RES.reduce(
+    (text, re) => text.replace(re, (m) => m.replace(/\d+\+/, rough)),
+    updated,
+  );
+  return { updated, changed: updated !== source };
 }
 
 // Все проверки data/bots.json и README.md: возвращает список проблем (пустой список = всё хорошо).
