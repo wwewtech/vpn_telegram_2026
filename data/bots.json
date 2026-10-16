@@ -164,6 +164,7 @@
   { "handle": "vpn_free" },
   { "handle": "Vpn_Ghost_Robot" },
   { "handle": "vpn_liberty_bot" },
+  { "handle": "vpn_mmg_bot" },
   { "handle": "vpn_plus777_bot" },
   { "handle": "VPN_RAKETA_BOT" },
   { "handle": "Vpn_Save_Bot" },
