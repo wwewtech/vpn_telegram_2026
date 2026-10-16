@@ -12,6 +12,19 @@ export const DATA_PATH = path.join(ROOT, 'data', 'bots.json');
 export const START = '<!-- BOTS:START -->';
 export const END = '<!-- BOTS:END -->';
 export const BADGE = /(updated-)(\d{4})\.(\d{2})(-brightgreen)/;
+export const BADGE_G = /(updated-)(\d{4})\.(\d{2})(-brightgreen)/g;
+export const STAMP_RE = /^\d{4}\.(0[1-9]|1[0-2])$/;
+
+// Штамп «YYYY.MM» из бейджа updated в тексте; null, если бейджа нет.
+export function extractBadgeStamp(text) {
+  const badge = String(text).match(BADGE);
+  return badge ? `${badge[2]}.${badge[3]}` : null;
+}
+
+// Заменяет штамп у всех бейджей updated в тексте, а не только у первого.
+export function replaceBadgeStamp(text, stamp) {
+  return String(text).replace(BADGE_G, (match, prefix, year, month, suffix) => `${prefix}${stamp}${suffix}`);
+}
 
 export const HANDLE_RE = /^[A-Za-z0-9_]{5,32}$/;
 export const VERIFIED_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -75,6 +88,18 @@ export function isMissingBotPage(html, handle) {
   return extractOgTitle(html).toLowerCase() === expected;
 }
 
+// true, когда разметка t.me изменилась и метод проверки перестал быть надёжным.
+// Ожидаем от текущей разметки t.me у живого хендла: есть og:title и непустой og:description.
+// Канарейка в check-links.mjs вызывает это для заведомо живой страницы; заглушка
+// несуществующего хендла проверяется отдельно через isMissingBotPage.
+export function isTmeMarkupUnrecognized(html) {
+  const ogTitle = extractOgTitle(html);
+  if (!ogTitle) return true;
+  const match = String(html).match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']*)["']/i);
+  if (!match) return true;
+  return match[1].trim() === '';
+}
+
 export function isWellFormed(bots) {
   return bots.every(
     (bot) => bot !== null && typeof bot === 'object' && !Array.isArray(bot) && typeof bot.handle === 'string',
@@ -116,13 +141,14 @@ export function renderUpdatedReadme(source, bots, date = new Date()) {
   }
   let updated = source.slice(0, region.regionStart) + newRegion + source.slice(region.regionEnd);
   const stamp = `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}`;
-  updated = updated.replace(BADGE, (match, prefix, year, month, suffix) => `${prefix}${stamp}${suffix}`);
+  updated = replaceBadgeStamp(updated, stamp);
   return { updated, changed: true };
 }
 
-// Грубое число ботов для README_EN.md: «200+», «300+» и т.д. (округление вниз до сотни).
+// Грубое число ботов для README_EN.md: «200+», «300+» и т.д. (округление вниз до сотни,
+// но не меньше «100+» — меньшие каталоги описывать округлением бессмысленно).
 export function botsRoundFloor(bots) {
-  return `${Math.floor(bots.length / 100) * 100}+`;
+  return `${Math.max(100, Math.floor(bots.length / 100) * 100)}+`;
 }
 
 const EN_COUNT_RES = [/\b\d+\+\s+bots\b/gi, /\b\d+\+\s+VPN\s+bots\b/gi];
@@ -134,8 +160,11 @@ const EN_COUNT_RES = [/\b\d+\+\s+bots\b/gi, /\b\d+\+\s+VPN\s+bots\b/gi];
 // Если файла нет — возвращает source без изменений.
 export function renderUpdatedReadmeEn(source, bots, stamp, present = true) {
   if (!present) return { updated: source, changed: false };
+  if (!STAMP_RE.test(stamp)) {
+    throw new Error(`штамп для README_EN.md должен быть строкой «YYYY.MM», получено: ${JSON.stringify(stamp)}`);
+  }
   const rough = botsRoundFloor(bots);
-  let updated = source.replace(BADGE, (match, prefix, year, month, suffix) => `${prefix}${stamp}${suffix}`);
+  let updated = replaceBadgeStamp(source, stamp);
   updated = EN_COUNT_RES.reduce(
     (text, re) => text.replace(re, (m) => m.replace(/\d+\+/, rough)),
     updated,

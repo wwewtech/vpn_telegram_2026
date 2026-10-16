@@ -4,12 +4,16 @@ import assert from 'node:assert/strict';
 import {
   buildTable,
   collectProblems,
+  extractBadgeStamp,
   extractOgTitle,
   isMissingBotPage,
+  isTmeMarkupUnrecognized,
   renderUpdatedReadme,
   renderUpdatedReadmeEn,
   serializeBots,
   sortBots,
+  botsRoundFloor,
+  replaceBadgeStamp,
 } from '../scripts/lib.mjs';
 
 const bot = (handle, extra = {}) => ({ handle, ...extra });
@@ -181,6 +185,16 @@ test('renderUpdatedReadmeEn: обновляет бейдж и метки чис�
   assert.ok(!updated.includes('100+'));
 });
 
+test('renderUpdatedReadmeEn: малый каталог — не меньше «100+ bots»', () => {
+  const small = Array.from({ length: 42 }, (_, i) => bot(`b${String(i).padStart(2, '0')}_bot`));
+  const { updated } = renderUpdatedReadmeEn(readmeEnFixture('updated-2026.01', '300+', '300+'), small, '2026.10');
+  assert.ok(updated.includes('100+ bots'));
+  assert.ok(updated.includes('100+ VPN bots'));
+  assert.ok(!updated.includes('300+ bots'));
+  assert.ok(!updated.includes('300+ VPN bots'));
+  assert.ok(!/\b0\+ bots/.test(updated));
+});
+
 test('renderUpdatedReadmeEn: идемпотентность — одинаковый stamp не меняет файл', () => {
   const bots = Array.from({ length: 203 }, (_, i) => bot(`b${String(i).padStart(2, '0')}_bot`));
   const stale = readmeEnFixture('updated-2026.01', '100+', '100+');
@@ -193,4 +207,47 @@ test('renderUpdatedReadmeEn: идемпотентность — одинаков
 test('renderUpdatedReadmeEn: без файла (present=false) — текст не меняется', () => {
   const result = renderUpdatedReadmeEn('anything', [bot('a_bot')], '2026.10', false);
   assert.deepEqual(result, { updated: 'anything', changed: false });
+});
+
+test('renderUpdatedReadmeEn: null/некорректный stamp — ошибка, битого бейджа updated-null не будет', () => {
+  const source = readmeEnFixture('updated-2026.01');
+  assert.throws(() => renderUpdatedReadmeEn(source, [bot('a_bot')], null), /штамп/);
+  assert.throws(() => renderUpdatedReadmeEn(source, [bot('a_bot')], '20261.1'), /штамп/);
+  assert.throws(() => renderUpdatedReadmeEn(source, [bot('a_bot')], '2026.13'), /штамп/);
+});
+
+test('botsRoundFloor: минимум «100+», дальше — округление вниз до сотни', () => {
+  assert.equal(botsRoundFloor(Array(50).fill({})), '100+');
+  assert.equal(botsRoundFloor(Array(99).fill({})), '100+');
+  assert.equal(botsRoundFloor(Array(100).fill({})), '100+');
+  assert.equal(botsRoundFloor(Array(204).fill({})), '200+');
+  assert.equal(botsRoundFloor(Array(299).fill({})), '200+');
+});
+
+test('extractBadgeStamp: штамп из бейджа, null при отсутствии/повреждении', () => {
+  assert.equal(extractBadgeStamp('[![Updated](https://img.shields.io/badge/updated-2026.10-brightgreen)](x)'), '2026.10');
+  assert.equal(extractBadgeStamp('no badge here'), null);
+  assert.equal(extractBadgeStamp('[![U](https://img.shields.io/badge/updated2026.10-brightgreen)](x)'), null);
+});
+
+test('replaceBadgeStamp: заменяет все бейджи updated, не только первый', () => {
+  const source = [
+    '[![U](https://img.shields.io/badge/updated-2026.01-brightgreen)](x)',
+    '[![U2](https://img.shields.io/badge/updated-2025.12-brightgreen)](y)',
+  ].join('\n');
+  const updated = replaceBadgeStamp(source, '2026.10');
+  assert.equal((updated.match(/updated-2026\.10-brightgreen/g) || []).length, 2);
+  assert.ok(!updated.includes('updated-2026.01'));
+  assert.ok(!updated.includes('updated-2025.12'));
+});
+
+const LIVE_HTML_FULL =
+  '    <meta property="og:title" content="BotFather"><meta property="og:description" content="BotFather is the one bot to rule them all.">';
+
+test('isTmeMarkupUnrecognized: живая страница распознаётся, битая/пустая разметка — нет', () => {
+  assert.equal(isTmeMarkupUnrecognized(LIVE_HTML_FULL), false);
+  assert.equal(isTmeMarkupUnrecognized('<html></html>'), true);
+  assert.equal(isTmeMarkupUnrecognized('<meta property="og:title" content="BotFather">'), true);
+  assert.equal(isTmeMarkupUnrecognized('<meta property="og:title" content="BotFather"><meta property="og:description" content="">'), true);
+  assert.equal(isTmeMarkupUnrecognized(''), true);
 });
