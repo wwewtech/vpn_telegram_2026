@@ -30,6 +30,7 @@ jobs:
         run: node scripts/check-links.mjs --out link-report.md
 
       - name: Open or update issue when dead links are found
+        if: always() # отчёт записан до exit 1 — Issue создаём даже при найденных мёртвых ботах
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

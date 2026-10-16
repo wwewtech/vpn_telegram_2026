@@ -5,8 +5,10 @@
 // "Telegram: Contact @handle". Ошибки сети помечаются отдельно ("unreachable")
 // и не считаются мёртвыми ботами.
 //
-// Запуск: node scripts/check-links.mjs [--out link-report.md]
-// Выход: отчёт в Markdown (пустой файл/поток, если проблем нет), exit 0 всегда.
+// Запуск: node scripts/check-links.mjs [--out link-report.md] [--no-fail]
+// Выход: отчёт в Markdown (пустой файл/поток, если проблем нет).
+//        exit 1, если найдены мёртвые боты (отчёт уже записан); --no-fail всегда возвращает 0.
+//        Недоступные (unreachable) не считаются ошибкой — это сеть, а не мёртвый бот.
 import { writeFileSync } from 'node:fs';
 import { isMissingBotPage, loadBots } from './lib.mjs';
 
@@ -97,3 +99,6 @@ if (outIndex !== -1 && process.argv[outIndex + 1]) {
 }
 
 console.log(`Итог: проверено ${results.length}, мёртвых: ${dead.length}, недоступных: ${unreachable.length}.`);
+if (dead.length > 0 && !process.argv.includes('--no-fail')) {
+  process.exitCode = 1;
+}
