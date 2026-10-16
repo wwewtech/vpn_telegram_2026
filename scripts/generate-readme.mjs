@@ -12,9 +12,9 @@
 // синхронизируются вместе с README.md.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import {
-  BADGE,
   README_EN_PATH,
   README_PATH,
+  extractBadgeStamp,
   isWellFormed,
   loadBots,
   renderUpdatedReadme,
@@ -51,10 +51,10 @@ if (result.changed) {
   if (process.argv.includes('--check')) {
     fail('README.md отличается от data/bots.json. Запустите: npm run fix');
   }
-  const before = source.match(BADGE);
-  const after = result.updated.match(BADGE);
-  if (before && after && before[0] !== after[0]) {
-    console.log(`Бейдж updated: ${before[2]}.${before[3]} -> ${after[2]}.${after[3]}`);
+  const before = extractBadgeStamp(source);
+  const after = extractBadgeStamp(result.updated);
+  if (before && after && before !== after) {
+    console.log(`Бейдж updated: ${before} -> ${after}`);
   }
   writeFileSync(README_PATH, result.updated, 'utf8');
   console.log(`Готово: таблица перегенерирована и отсортирована по алфавиту (${bots.length} ботов).`);
@@ -63,8 +63,10 @@ if (result.changed) {
 }
 
 // Синхронизация README_EN.md: бейдж updated (значение — из основного README) и метки вида «200+ bots».
-const badge = result.updated.match(BADGE);
-const stamp = badge ? `${badge[2]}.${badge[3]}` : null;
+const stamp = extractBadgeStamp(result.updated);
+if (!stamp) {
+  fail('в README.md не найден или повреждён бейдж updated-YYYY.MM — проверьте строку с бейджем «Updated»');
+}
 const enPresent = existsSync(README_EN_PATH);
 const enSource = enPresent ? readFileSync(README_EN_PATH, 'utf8').replace(/\r\n/g, '\n') : '';
 const enResult = renderUpdatedReadmeEn(enSource, bots, stamp, enPresent);
