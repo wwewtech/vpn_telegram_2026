@@ -15,6 +15,6 @@
     "check": "node scripts/validate.mjs && node scripts/generate-readme.mjs --check"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }
