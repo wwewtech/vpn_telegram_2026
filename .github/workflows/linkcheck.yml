@@ -29,18 +29,27 @@ jobs:
       - name: Run link checker with verified stamping
         run: node scripts/check-links.mjs --out link-report.md --stamp-verified
 
-      - name: Commit verified updates (only when nothing is dead)
+      # Verified-обновления идут через PR: защита main запрещает прямые пуши
+      # (required PR + checks + enforce admins) — и GITHUB_TOKEN не исключение.
+      # Бот создаёт ветку и PR; мержить — за человеком (или админ-мержем ниже).
+      - name: Create auto-PR with verified updates
         if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_TITLE: "chore: автопроверка — verified обновлён"
         run: |
           if git diff --quiet; then
-            echo "verified: изменений нет."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/bots.json README.md
-            git commit -m "chore: auto-verify bots (monthly stamp) [skip ci]"
-            git push origin HEAD:main
+            echo "verified: изменений нет — PR не нужен."
+            exit 0
           fi
+          BRANCH="auto/verified-$(date -u +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/bots.json README.md README_EN.md
+          git commit -m "chore: auto-verify bots — verified stamped by weekly check [skip ci]"
+          git push origin "HEAD:$BRANCH"
+          BODY=$(cat link-report.md 2>/dev/null || echo "Все боты живы. verified обновлён до текущего месяца.")
+          gh pr create --title "$PR_TITLE" --body "$BODY" --base main --head "$BRANCH" || echo "PR уже существует"
 
       - name: Open or update issue when dead links are found
         if: always() # отчёт записан до exit 1 — Issue создаём даже при найденных мёртвых ботах

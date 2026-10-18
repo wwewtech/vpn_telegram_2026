@@ -230,7 +230,9 @@ export function collectProblems(bots, readmeText) {
 
 // Автопроставление verified по результатам проверки ссылок.
 // Чистая функция: возвращает новый массив (и счётчик изменений), исходный не мутирует.
-//   - «ok»      → verified = месяц проверки (YYYY-MM), если он новее текущего или поля нет;
+//   - «ok»      → verified = месяц проверки (YYYY-MM), если он НОВЕЕ текущего или поля нет.
+//                  Ручную «будущую» отметку (например, 2027-01 при проверке за 2026-10)
+//                  автопрогон не понижает — ручные данные важнее автостатуса;
 //   - «dead»    → verified снимается (бот не работает — свежесть протухла);
 //   - «unreachable» → verified не трогаем (сеть ≠ мёртвый бот).
 export function applyVerified(bots, results, checkedAt) {
@@ -243,7 +245,7 @@ export function applyVerified(bots, results, checkedAt) {
     const status = byHandle.get(bot.handle.toLowerCase());
     if (status === undefined) return bot;
     if (status === 'ok') {
-      if (bot.verified === checkedAt) return bot;
+      if (bot.verified !== undefined && bot.verified >= checkedAt) return bot; // уже свежее или равно
       changed += 1;
       return { ...bot, verified: checkedAt };
     }

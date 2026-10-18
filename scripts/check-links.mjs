@@ -26,6 +26,7 @@ import {
   applyVerified,
   isMissingBotPage,
   isTmeMarkupUnrecognized,
+  isWellFormed,
   loadBots,
   serializeBots,
   sortBots,
@@ -90,9 +91,6 @@ async function checkCanary() {
   }
   try {
     const deadHtml = await fetchTme(CANARY_DEAD);
-    if (isTmeMarkupUnrecognized(deadHtml) && !isMissingBotPage(deadHtml, CANARY_DEAD)) {
-      return { ok: false, detail: `страница @${CANARY_DEAD} не похожа ни на живую, ни на заглушку «Contact»` };
-    }
     if (!isMissingBotPage(deadHtml, CANARY_DEAD)) {
       return { ok: false, detail: `несуществующий хендл @${CANARY_DEAD} не распознан как «Contact» (мёртвые боты будут считаться живыми)` };
     }
@@ -147,6 +145,11 @@ function renderReport(results, checkedAt) {
 
 const bots = loadBots();
 
+if (!isWellFormed(bots)) {
+  console.error('Ошибка: в data/bots.json есть записи без строкового поля "handle" — запускайте npm run validate для деталей.');
+  process.exit(1);
+}
+
 const canary = await checkCanary();
 if (!canary.ok) {
   const message = `Самопроверка метода не пройдена: ${canary.detail}.`;
@@ -172,6 +175,10 @@ const report = renderReport(results, new Date().toISOString().slice(0, 10));
 
 // Автопроставление verified: только по итогам полной проверки, без мёртвых.
 // При найденных мёртвых ботах данные не обновляем — сначала ручное решение по каждому.
+// Порядок записи: data/bots.json → пересборка README (generate-readme.mjs синхронизирует
+// и README_EN.md). Если пересборка упадёт, данные уже записаны, README отстанет —
+// следующий npm run fix / validate это поймает и выправит, полуданных не возникнет
+// (данные без README валидны, README без данных — нет).
 if (process.argv.includes('--stamp-verified') && dead.length === 0) {
   const checkedMonth = new Date().toISOString().slice(0, 7);
   const { bots: stamped, changed } = applyVerified(bots, results, checkedMonth);

@@ -276,6 +276,20 @@ test('applyVerified: идемпотентность — повторный пр�
   assert.deepEqual(second.bots, first.bots);
 });
 
+test('applyVerified: не понижает более новый ручной verified', () => {
+  const bots = [bot('a_bot', { verified: '2027-01' })];
+  const { bots: stamped, changed } = applyVerified(bots, [ok('a_bot')], '2026-10');
+  assert.equal(changed, 0);
+  assert.equal(stamped[0].verified, '2027-01');
+});
+
+test('applyVerified: старый verified обновляется на текущий месяц', () => {
+  const bots = [bot('a_bot', { verified: '2026-08' })];
+  const { bots: stamped, changed } = applyVerified(bots, [ok('a_bot')], '2026-10');
+  assert.equal(changed, 1);
+  assert.equal(stamped[0].verified, '2026-10');
+});
+
 test('applyVerified: не мутирует исходный массив', () => {
   const bots = [bot('a_bot')];
   applyVerified(bots, [ok('a_bot')], '2026-10');
