@@ -227,3 +227,34 @@ export function collectProblems(bots, readmeText) {
 
   return problems;
 }
+
+// Автопроставление verified по результатам проверки ссылок.
+// Чистая функция: возвращает новый массив (и счётчик изменений), исходный не мутирует.
+//   - «ok»      → verified = месяц проверки (YYYY-MM), если он новее текущего или поля нет;
+//   - «dead»    → verified снимается (бот не работает — свежесть протухла);
+//   - «unreachable» → verified не трогаем (сеть ≠ мёртвый бот).
+export function applyVerified(bots, results, checkedAt) {
+  const byHandle = new Map();
+  for (const item of results) {
+    byHandle.set(String(item.handle).toLowerCase(), item.status);
+  }
+  let changed = 0;
+  const updated = bots.map((bot) => {
+    const status = byHandle.get(bot.handle.toLowerCase());
+    if (status === undefined) return bot;
+    if (status === 'ok') {
+      if (bot.verified === checkedAt) return bot;
+      changed += 1;
+      return { ...bot, verified: checkedAt };
+    }
+    if (status === 'dead') {
+      if (bot.verified === undefined) return bot;
+      changed += 1;
+      const copy = { ...bot };
+      delete copy.verified;
+      return copy;
+    }
+    return bot;
+  });
+  return { bots: updated, changed };
+}

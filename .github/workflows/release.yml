@@ -1,0 +1,104 @@
+name: Monthly release
+
+# Месячный релиз: тег vYYYY.MM + GitHub Release с changelog.
+# Даёт: индексируемую страницу релиза, повод для поста в чатах,
+# свежую «движуху» в репозитории (GitHub и Google это любят).
+#
+# Автоматически: 1-го числа в 07:00 UTC.
+# Вручную: workflow_dispatch (можно указать произвольный тег).
+
+name: Release
+on:
+  schedule:
+    - cron: '0 7 1 * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Тег релиза (пусто = vГГГГ.ММ от текущей даты)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # вся история — для changelog по коммитам
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Compute tag and previous tag
+        id: tags
+        run: |
+          NOW=$(date -u +%Y.%m)
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="v$NOW"; fi
+          # предыдущий тег по дате (для changelog)
+          PREV=$(git tag --sort=-creatordate | grep -E '^v[0-9]{4}\.[0-9]{2}$' | grep -v "^$TAG\$" | head -1)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prev=${PREV:-}" >> "$GITHUB_OUTPUT"
+          echo "Тег: $TAG, предыдущий: ${PREV:-<первый релиз>}"
+
+      - name: Bots count now and at previous release
+        id: counts
+        run: |
+          NOW_BOTS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data/bots.json','utf8')).length)")
+          echo "now=$NOW_BOTS" >> "$GITHUB_OUTPUT"
+          PREV="${{ steps.tags.outputs.prev }}"
+          if [ -n "$PREV" ]; then
+            git show "$PREV:data/bots.json" > /tmp/prev-bots.json 2>/dev/null || echo "[]" > /tmp/prev-bots.json
+            PREV_BOTS=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('/tmp/prev-bots.json','utf8')).length)}catch{console.log(0)}")
+            echo "prev_count=$PREV_BOTS" >> "$GITHUB_OUTPUT"
+          else
+            echo "prev_count=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release notes
+        id: notes
+        run: |
+          TAG="${{ steps.tags.outputs.tag }}"
+          PREV="${{ steps.tags.outputs.prev }}"
+          NOW_BOTS="${{ steps.counts.outputs.now }}"
+          PREV_BOTS="${{ steps.counts.outputs.prev_count }}"
+          {
+            echo "## Каталог VPN-ботов: $TAG"
+            echo ""
+            echo "**Ботов в каталоге: $NOW_BOTS** (было: $PREV_BOTS, разница: $((NOW_BOTS - PREV_BOTS)))."
+            echo ""
+            echo "### Изменения с прошлого релиза"
+            echo ""
+            if [ -n "$PREV" ]; then
+              git log --oneline --no-merges "$PREV..HEAD" --format='- %s (%h)' | head -50
+              if [ -z "$(git log --oneline --no-merges "$PREV..HEAD")" ]; then
+                echo "- Изменений в коде не было: только автопроверки ссылок."
+              fi
+            else
+              echo "- Первый релиз. В каталоге $NOW_BOTS ботов, еженедельная автопроверка живости, автосортировка и генерация README."
+            fi
+          } > release-notes.md
+          head -20 release-notes.md
+
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.tags.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Тег $TAG уже существует — создаю только release (или обновляю существующий)."
+            gh release view "$TAG" >/dev/null 2>&1 && gh release edit "$TAG" --notes-file release-notes.md || gh release create "$TAG" --title "$TAG" --notes-file release-notes.md
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file release-notes.md --target main
+          fi
