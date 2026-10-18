@@ -90,6 +90,34 @@ test('collectProblems: реферальные параметры в README', () 
   assert.match(problems[0], /ссылка с параметрами/);
 });
 
+test('collectProblems: двойные маркеры таблицы ловятся (было невидимо для валидации)', () => {
+  const double = `<!-- BOTS:START -->\n| 1 |\n<!-- BOTS:END -->\n\n<!-- BOTS:START -->\n| 2 |\n<!-- BOTS:END -->\n`;
+  const problems = collectProblems([bot('a_bot')], double);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /ровно по одному маркеру/);
+  assert.match(problems[0], /START=2, END=2/);
+});
+
+test('collectProblems: одна пара маркеров — без проблем', () => {
+  const ok = `# T\n\n<!-- BOTS:START -->\n| 1 |\n<!-- BOTS:END -->\n`;
+  assert.deepEqual(collectProblems([bot('a_bot')], ok), []);
+});
+
+test('collectProblems: END раньше START ловится', () => {
+  const inverted = `<!-- BOTS:END -->\n\n<!-- BOTS:START -->\n`;
+  const problems = collectProblems([bot('a_bot')], inverted);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /раньше/);
+});
+
+test('collectProblems: без маркеров вовсе — молчит (контракт пустого текста)', () => {
+  // Пустой текст — легаси-контракт (тесты передают ''), отсутствие маркеров
+  // ловит renderUpdatedReadme с понятной ошибкой. Здесь фиксируем, что
+  // проверка маркеров не ломает этот контракт.
+  assert.deepEqual(collectProblems([bot('a_bot')], ''), []);
+  assert.deepEqual(collectProblems([bot('a_bot')], '# нет маркеров'), []);
+});
+
 test('buildTable: колонка «Проверено» появляется при наличии verified', () => {
   const table = buildTable([bot('a_bot', { verified: '2026-10' }), bot('b_bot')]);
   assert.equal(
