@@ -225,7 +225,37 @@ export function collectProblems(bots, readmeText) {
     problems.push(`в README.md найдена ссылка с параметрами (реферальные и трекинговые запрещены): ${refLink[0]}`);
   }
 
+  // Маркеры таблицы: если маркеры в README есть, их должно быть ровно по одному
+  // (START и END). Двойные пары раньше проходили валидацию молча, а генератор
+  // обновлял только первый блок — второй оставался дубликатом навсегда.
+  // Если маркеров нет совсем — молчим: это легаси-контракт вызова с пустым
+  // текстом (тесты передают ''), отсутствие маркеров ловит renderUpdatedReadme.
+  const startCount = countOccurrences(readmeText, START);
+  const endCount = countOccurrences(readmeText, END);
+  if (startCount > 0 || endCount > 0) {
+    if (startCount !== 1 || endCount !== 1) {
+      problems.push(
+        `в README.md должно быть ровно по одному маркеру ${START} и ${END}, ` +
+          `найдено: START=${startCount}, END=${endCount}. Удалите лишний блок таблицы, ` +
+          `вставленный вручную, — таблица генерируется между единственной парой маркеров.`,
+      );
+    } else if (readmeText.indexOf(END) < readmeText.indexOf(START)) {
+      problems.push(`в README.md маркер ${END} стоит раньше ${START} — проверьте порядок маркеров.`);
+    }
+  }
+
   return problems;
+}
+
+function countOccurrences(text, marker) {
+  let count = 0;
+  let position = 0;
+  for (;;) {
+    const found = text.indexOf(marker, position);
+    if (found === -1) return count;
+    count += 1;
+    position = found + marker.length;
+  }
 }
 
 // Автопроставление verified по результатам проверки ссылок.
