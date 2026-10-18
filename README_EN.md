@@ -25,6 +25,8 @@ The complete table (200+ bots) lives in the Russian README:
 
 Source of truth: [`data/bots.json`](data/bots.json). Table is generated and always sorted A–Z. Links are clean `https://t.me/<handle>` — no referral or tracking params.
 
+> **Found a working bot?** Give the repo a ⭐ — one second for you, a huge signal for the project: GitHub and Google rank active repos higher, so the list stays easy to find. The catalog is alive: links are auto-checked weekly, dead bots are removed, new ones are added by the community.
+
 ## Quick start (60 seconds)
 
 1. Open 3–5 bots from the list.
