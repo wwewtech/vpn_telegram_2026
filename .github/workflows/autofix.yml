@@ -1,8 +1,12 @@
 name: Autofix
 
+# Автофикс работает только в PR: коммит с сортировкой/пересборкой пушится
+# в PR-ветку (она не защищена). Push-триггер на main удалён — защита ветки
+# (required PR + enforce admins) отклоняет прямые пуши в main с GH006,
+# поэтому push-путь был гарантированно сломан и избыточен: в main изменения
+# попадают только через PR, а каждый PR уже получает автофикс через
+# pull_request-триггер ниже.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 permissions:
@@ -15,13 +19,14 @@ concurrency:
 jobs:
   autofix:
     name: Sort and regenerate (best effort)
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    # Только PR из веток этого репозитория: в форк-ветки бот не может пушить.
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: ${{ github.head_ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -41,4 +46,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/bots.json README.md README_EN.md
           git commit -m "chore: auto-sort bots and regenerate README [skip ci]"
-          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          git push origin HEAD:${{ github.head_ref }}
