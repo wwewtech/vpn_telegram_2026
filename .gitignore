@@ -4,6 +4,8 @@ node_modules/
 # Артефакты проверок
 link-report.md
 *.log
+coverage.txt
+coverage.lcov
 
 # ОС
 .DS_Store

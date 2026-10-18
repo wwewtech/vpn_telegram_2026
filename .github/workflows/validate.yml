@@ -21,11 +21,33 @@ jobs:
         with:
           node-version: 24
 
-      - name: Run unit tests
-        run: node --test
+      - name: Run unit tests with coverage
+        run: |
+          node --test --experimental-test-coverage tests/lib.test.mjs tests/validate-schema.test.mjs 2>&1 | tee coverage.txt
+          PCT=$(grep -oE 'all files[[:space:]]*\|[[:space:]]*[0-9.]+' coverage.txt | grep -oE '[0-9.]+$' | head -1)
+          echo "Coverage: $PCT%"
+          echo "PCT=$PCT" >> "$GITHUB_ENV"
 
-      - name: Validate data, sorting and links
-        run: node scripts/validate.mjs
+      - name: Validate data, sorting, schema and links
+        run: npm run validate
 
       - name: Check that README.md is regenerated and sorted
         run: node scripts/generate-readme.mjs --check
+
+      # Динамический бейдж: coverage.json пушится force-push в отдельную
+      # незащищённую ветку coverage; README ссылается на shields.io endpoint.
+      # main не трогаем: защита ветки запрещает прямые пуши — и это правильно.
+      # Ветка coverage — orphan с единственным файлом, история не нужна.
+      - name: Publish coverage badge JSON to coverage branch
+        if: github.ref == 'refs/heads/main' && success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node scripts/coverage-badge-json.mjs "$PCT" /tmp/coverage.json
+          git checkout --orphan badge-tmp
+          git rm -rq --cached . 2>/dev/null || true
+          git clean -fdxq
+          cp /tmp/coverage.json coverage.json
+          git add coverage.json
+          git commit -qm "chore: coverage badge data ($PCT%)"
+          git push -fq origin HEAD:coverage

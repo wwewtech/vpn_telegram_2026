@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/wwewtech/vpn_telegram_2026/main/schema/bots.schema.json",
+  "title": "Каталог VPN-ботов Telegram",
+  "description": "Контракт data/bots.json: единственный источник данных каталога. Массив объектов, каждый — один Telegram-бот. Дополнительные свойства запрещены: любое новое поле сначала добавляется сюда, затем в код (validate.mjs сообщит, если код и схема разошлись).",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["handle"],
+    "properties": {
+      "handle": {
+        "type": "string",
+        "title": "Хендл Telegram",
+        "description": "Username бота без @. 5–32 символа: A–Z, a–z, 0–9, _ (правила Telegram). Хендлы нечувствительны к регистру, дублей (в любом регистре) быть не может — проверяется кодом, схема задаёт формат.",
+        "pattern": "^[A-Za-z0-9_]{5,32}$",
+        "examples": ["IsoraVPN_bot", "easy2vpnbot"]
+      },
+      "verified": {
+        "type": "string",
+        "title": "Месяц последней проверки живости",
+        "description": "Формат YYYY-MM. Проставляется автоматически еженедельным linkcheck (живым) и снимается у мёртвых; вручную — при личной проверке. Значит «ссылка открывалась в этом месяце», а не «сервис качественный».",
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+        "examples": ["2026-10"]
+      }
+    }
+  },
+  "_meta": {
+    "comment": "Сортировка массива по handle (без учёта регистра) и отсутствие дублей — инварианты данных, проверяются кодом (scripts/validate.mjs): схема описывает форму записи, код — порядок и уникальность."
+  }
+}

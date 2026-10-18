@@ -6,6 +6,7 @@
 [![Last commit](https://img.shields.io/github/last-commit/wwewtech/vpn_telegram_2026)](https://github.com/wwewtech/vpn_telegram_2026/commits/main)
 [![Updated](https://img.shields.io/badge/updated-2026.10-brightgreen)](https://github.com/wwewtech/vpn_telegram_2026)
 [![Bots](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fwwewtech%2Fvpn_telegram_2026%2Fmain%2Fdata%2Fbots.json&query=%24.length&label=bots&color=blue)](https://github.com/wwewtech/vpn_telegram_2026/blob/main/data/bots.json)
+[![coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fwwewtech%2Fvpn_telegram_2026%2Fcoverage%2Fcoverage.json)](https://github.com/wwewtech/vpn_telegram_2026/actions/workflows/validate.yml)
 [![PR welcome](https://img.shields.io/badge/PR-welcome-0ea5e9)](https://github.com/wwewtech/vpn_telegram_2026/pulls)
 [![Telegram](https://img.shields.io/badge/platform-Telegram-229ED9?logo=telegram&logoColor=white)](https://telegram.org)
 
