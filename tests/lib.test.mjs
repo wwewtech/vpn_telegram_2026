@@ -42,6 +42,28 @@ test('serializeBots: канонический формат файла', () => {
   );
 });
 
+test('serializeBots: нормализует порядок ключей — handle первым, verified вторым', () => {
+  // Перевёрнутая запись из чужого PR раньше сохраняла порядок как есть,
+  // порождая вторую «каноническую» форму файла и git-шум при npm run fix.
+  const reversed = { verified: '2026-09', handle: 'a_bot' };
+  assert.equal(
+    serializeBots([reversed]),
+    '[\n  { "handle": "a_bot", "verified": "2026-09" }\n]\n',
+  );
+});
+
+test('serializeBots: идемпотентность — повторная сериализация ничего не меняет', () => {
+  const once = serializeBots([{ handle: 'a_bot', verified: '2026-10' }]);
+  const twice = serializeBots(JSON.parse(once));
+  assert.equal(once, twice);
+});
+
+test('serializeBots: неизвестные ключи не теряются (их отругает валидация)', () => {
+  const out = serializeBots([{ junk: 1, handle: 'a_bot' }]);
+  assert.ok(out.includes('"handle": "a_bot"'));
+  assert.ok(out.includes('"junk": 1'));
+});
+
 test('buildTable: нумерация, @-хендлы и ссылки без параметров', () => {
   const table = buildTable([bot('a_bot'), bot('B_bot')]);
   assert.equal(
