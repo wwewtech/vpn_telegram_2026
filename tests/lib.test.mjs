@@ -2,7 +2,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applyVerified,
   buildTable,
+  botsRoundFloor,
   collectProblems,
   extractBadgeStamp,
   extractOgTitle,
@@ -10,10 +12,9 @@ import {
   isTmeMarkupUnrecognized,
   renderUpdatedReadme,
   renderUpdatedReadmeEn,
+  replaceBadgeStamp,
   serializeBots,
   sortBots,
-  botsRoundFloor,
-  replaceBadgeStamp,
 } from '../scripts/lib.mjs';
 
 const bot = (handle, extra = {}) => ({ handle, ...extra });
@@ -250,4 +251,53 @@ test('isTmeMarkupUnrecognized: живая страница распознаёт�
   assert.equal(isTmeMarkupUnrecognized('<meta property="og:title" content="BotFather">'), true);
   assert.equal(isTmeMarkupUnrecognized('<meta property="og:title" content="BotFather"><meta property="og:description" content="">'), true);
   assert.equal(isTmeMarkupUnrecognized(''), true);
+});
+
+const ok = (handle) => ({ handle, status: 'ok' });
+const dead = (handle) => ({ handle, status: 'dead' });
+const unreachable = (handle) => ({ handle, status: 'unreachable' });
+
+test('applyVerified: живым ставит месяц проверки, мёртвым снимает, unreachable не трогает', () => {
+  const bots = [bot('a_bot'), bot('b_bot', { verified: '2026-09' }), bot('c_bot', { verified: '2026-09' }), bot('d_bot', { verified: '2026-09' })];
+  const results = [ok('a_bot'), ok('b_bot'), dead('c_bot'), unreachable('d_bot')];
+  const { bots: stamped, changed } = applyVerified(bots, results, '2026-10');
+  assert.equal(changed, 3);
+  assert.deepEqual(stamped[0], { handle: 'a_bot', verified: '2026-10' });
+  assert.equal(stamped[1].verified, '2026-10');
+  assert.equal(stamped[2].verified, undefined);
+  assert.equal('verified' in stamped[2], false);
+  assert.equal(stamped[3].verified, '2026-09');
+});
+
+test('applyVerified: идемпотентность — повторный прогон того же месяца без изменений', () => {
+  const first = applyVerified([bot('a_bot')], [ok('a_bot')], '2026-10');
+  const second = applyVerified(first.bots, [ok('a_bot')], '2026-10');
+  assert.equal(second.changed, 0);
+  assert.deepEqual(second.bots, first.bots);
+});
+
+test('applyVerified: не мутирует исходный массив', () => {
+  const bots = [bot('a_bot')];
+  applyVerified(bots, [ok('a_bot')], '2026-10');
+  assert.deepEqual(bots, [bot('a_bot')]);
+});
+
+test('applyVerified: боты вне результатов проверки не меняются', () => {
+  const bots = [bot('a_bot'), bot('z_bot')];
+  const { bots: stamped, changed } = applyVerified(bots, [ok('a_bot')], '2026-10');
+  assert.equal(changed, 1);
+  assert.deepEqual(stamped[1], { handle: 'z_bot' });
+});
+
+test('applyVerified: хендлы нечувствительны к регистру', () => {
+  const { bots: stamped, changed } = applyVerified([bot('A_bot')], [ok('a_bot')], '2026-10');
+  assert.equal(changed, 1);
+  assert.equal(stamped[0].verified, '2026-10');
+});
+
+test('applyVerified + buildTable: колонка «Проверено» появляется после простановки', () => {
+  const { bots: stamped } = applyVerified([bot('a_bot')], [ok('a_bot')], '2026-10');
+  const table = buildTable(stamped);
+  assert.ok(table.includes('| # | Бот | Проверено | Ссылка |'));
+  assert.ok(table.includes('| 1 | @a_bot | 2026-10 |'));
 });

@@ -5,17 +5,31 @@
 // "Telegram: Contact @handle". Ошибки сети помечаются отдельно ("unreachable")
 // и не считаются мёртвыми ботами.
 //
-// Запуск: node scripts/check-links.mjs [--out link-report.md] [--no-fail]
+// Запуск: node scripts/check-links.mjs [--out link-report.md] [--no-fail] [--stamp-verified]
 // Выход: отчёт в Markdown (пустой файл/поток, если проблем нет).
 //        exit 1, если найдены мёртвые боты или сломался сам метод (отчёт уже записан);
 //        --no-fail всегда возвращает 0.
 //        Недоступные (unreachable) не считаются ошибкой — это сеть, а не мёртвый бот.
 //
+// --stamp-verified: живым ботам проставляется "verified": "YYYY-MM" (месяц проверки)
+//        в data/bots.json, у мёртвых — снимается. Затем данные сортируются и README
+//        пересобирается (npm run fix). В README появляется колонка «Проверено».
+//
 // Самопроверка метода (канарейка): перед стартом скрипт проверяет две заведомо известные
 // страницы t.me — живую (BotFather) и несуществующую. Если t.me сменит разметку и метод
 // перестанет их различать, проверка завершится ошибкой метода, а не молчаливым «все живы».
 import { writeFileSync } from 'node:fs';
-import { isMissingBotPage, isTmeMarkupUnrecognized, loadBots } from './lib.mjs';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import {
+  DATA_PATH,
+  applyVerified,
+  isMissingBotPage,
+  isTmeMarkupUnrecognized,
+  loadBots,
+  serializeBots,
+  sortBots,
+} from './lib.mjs';
 
 const CONCURRENCY = 4;
 const REQUEST_TIMEOUT_MS = 20000;
@@ -155,6 +169,21 @@ const results = await checkAll(bots);
 const dead = results.filter((item) => item.status === 'dead');
 const unreachable = results.filter((item) => item.status === 'unreachable');
 const report = renderReport(results, new Date().toISOString().slice(0, 10));
+
+// Автопроставление verified: только по итогам полной проверки, без мёртвых.
+// При найденных мёртвых ботах данные не обновляем — сначала ручное решение по каждому.
+if (process.argv.includes('--stamp-verified') && dead.length === 0) {
+  const checkedMonth = new Date().toISOString().slice(0, 7);
+  const { bots: stamped, changed } = applyVerified(bots, results, checkedMonth);
+  if (changed > 0) {
+    writeFileSync(DATA_PATH, serializeBots(sortBots(stamped)), 'utf8');
+    console.log(`verified: обновлено ${changed} записей (${checkedMonth}) — пересобираю README...`);
+    execFileSync(process.execPath, [fileURLToPath(new URL('./generate-readme.mjs', import.meta.url))], { stdio: 'inherit' });
+    console.log(`verified: data/bots.json и README обновлены (${changed} записей, ${checkedMonth}).`);
+  } else {
+    console.log(`verified: изменений нет — у всех живых ботов уже стоит ${checkedMonth}.`);
+  }
+}
 
 const outIndex = process.argv.indexOf('--out');
 if (outIndex !== -1 && process.argv[outIndex + 1]) {
