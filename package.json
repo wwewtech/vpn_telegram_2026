@@ -12,6 +12,7 @@
     "validate": "node scripts/validate.mjs",
     "test": "node --test",
     "check-links": "node scripts/check-links.mjs",
+    "check-links:verified": "node scripts/check-links.mjs --stamp-verified",
     "check": "node scripts/validate.mjs && node scripts/generate-readme.mjs --check"
   },
   "engines": {
