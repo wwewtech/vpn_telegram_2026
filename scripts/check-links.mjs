@@ -173,12 +173,25 @@ const dead = results.filter((item) => item.status === 'dead');
 const unreachable = results.filter((item) => item.status === 'unreachable');
 const report = renderReport(results, new Date().toISOString().slice(0, 10));
 
+// Отчёт записывается ДО stamp-блока: он зависит только от results, а stamp
+// (запись данных + пересборка README) может упасть — при старом порядке
+// падение пересборки оставляло CI без отчёта, и шаг Issue в workflow
+// уходил в ветку «файл пуст → все ссылки доступны» — ложное «все живы»
+// при фактически неизвестном состоянии и закрытие issue о мёртвых ботах.
+const outIndex = process.argv.indexOf('--out');
+if (outIndex !== -1 && process.argv[outIndex + 1]) {
+  writeFileSync(process.argv[outIndex + 1], report, 'utf8');
+} else {
+  process.stdout.write(report);
+}
+
 // Автопроставление verified: только по итогам полной проверки, без мёртвых.
 // При найденных мёртвых ботах данные не обновляем — сначала ручное решение по каждому.
 // Порядок записи: data/bots.json → пересборка README (generate-readme.mjs синхронизирует
 // и README_EN.md). Если пересборка упадёт, данные уже записаны, README отстанет —
 // следующий npm run fix / validate это поймает и выправит, полуданных не возникнет
-// (данные без README валидны, README без данных — нет).
+// (данные без README валидны, README без данных — нет). Отчёт к этому моменту
+// уже записан — CI не останется без отчёта.
 if (process.argv.includes('--stamp-verified') && dead.length === 0) {
   const checkedMonth = new Date().toISOString().slice(0, 7);
   const { bots: stamped, changed } = applyVerified(bots, results, checkedMonth);
@@ -190,13 +203,6 @@ if (process.argv.includes('--stamp-verified') && dead.length === 0) {
   } else {
     console.log(`verified: изменений нет — у всех живых ботов уже стоит ${checkedMonth}.`);
   }
-}
-
-const outIndex = process.argv.indexOf('--out');
-if (outIndex !== -1 && process.argv[outIndex + 1]) {
-  writeFileSync(process.argv[outIndex + 1], report, 'utf8');
-} else {
-  process.stdout.write(report);
 }
 
 console.log(`Итог: проверено ${results.length}, мёртвых: ${dead.length}, недоступных: ${unreachable.length}.`);
