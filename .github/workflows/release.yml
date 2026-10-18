@@ -1,5 +1,3 @@
-name: Monthly release
-
 # Месячный релиз: тег vYYYY.MM + GitHub Release с changelog.
 # Даёт: индексируемую страницу релиза, повод для поста в чатах,
 # свежую «движуху» в репозитории (GitHub и Google это любят).
