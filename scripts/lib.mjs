@@ -63,13 +63,20 @@ export function sortBots(bots) {
   return [...bots].sort(compareBots);
 }
 
-// Канонический формат файла: один объект в строке, ключи и значения сохраняются как есть.
+// Канонический формат файла: один объект в строке. Порядок ключей нормализуется:
+// handle первым (обязательное поле схемы), verified вторым, остальные (невалидные
+// для контракта, но сериализатор не должен терять данные) — в исходном порядке.
+// Без нормализации перевёрнутая запись из чужого PR проходила validate и
+// порождала вторую «каноническую» форму файла — вечный git-шум при npm run fix.
 export function serializeBots(bots) {
   const lines = bots.map((bot) => {
     if (bot === null || typeof bot !== 'object' || Array.isArray(bot)) {
       return `  ${JSON.stringify(bot)}`;
     }
-    const fields = Object.entries(bot).map(([key, value]) => `${JSON.stringify(key)}: ${JSON.stringify(value)}`);
+    const order = ['handle', 'verified', ...Object.keys(bot).filter((key) => key !== 'handle' && key !== 'verified')];
+    const fields = order
+      .filter((key) => key in bot)
+      .map((key) => `${JSON.stringify(key)}: ${JSON.stringify(bot[key])}`);
     return `  { ${fields.join(', ')} }`;
   });
   return `[\n${lines.join(',\n')}\n]\n`;
