@@ -48,7 +48,14 @@ jobs:
           git add data/bots.json README.md README_EN.md
           git commit -m "chore: auto-verify bots — verified stamped by weekly check [skip ci]"
           git push origin "HEAD:$BRANCH"
-          BODY=$(cat link-report.md 2>/dev/null || echo "Все боты живы. verified обновлён до текущего месяца.")
+          # Тело PR: отчёт, если он непуст; иначе — пояснение. Проверка -s (а не
+          # "cat ... || echo"): cat пустого файла возвращает код 0, поэтому
+          # fallback не срабатывал и PR создавался с ПУСТЫМ описанием.
+          if [ -s link-report.md ]; then
+            BODY=$(cat link-report.md)
+          else
+            BODY="Все боты живы, мёртвых нет. verified обновлён до текущего месяца."
+          fi
           gh pr create --title "$PR_TITLE" --body "$BODY" --base main --head "$BRANCH" || echo "PR уже существует"
 
       - name: Open or update issue when dead links are found
