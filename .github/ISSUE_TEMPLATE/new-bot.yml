@@ -6,8 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        Спасибо! Самый быстрый путь — сразу Pull Request: добавьте запись в `data/bots.json` и выполните
-        `npm run fix` (сортировка + пересборка README). Подробности — в [CONTRIBUTING.md](https://github.com/wwewtech/vpn_telegram_2026/blob/main/CONTRIBUTING.md).
+        **Два равнозначных способа добавить бота — выбирайте любой:**
+
+        1. **Эта форма** (проще): заполните поля ниже, бот появится в каталоге после проверки мейнтейнера.
+        2. **Pull Request**: добавьте запись в `data/bots.json`, выполните `npm run fix` и откройте PR —
+           подробности в [CONTRIBUTING.md](https://github.com/wwewtech/vpn_telegram_2026/blob/main/CONTRIBUTING.md).
+
+        Через Issue быстрее: не нужно ничего запускать локально.
   - type: input
     id: bot
     attributes:
