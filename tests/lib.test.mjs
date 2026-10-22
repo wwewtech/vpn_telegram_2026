@@ -10,6 +10,7 @@ import {
   extractOgTitle,
   isMissingBotPage,
   isTmeMarkupUnrecognized,
+  isWellFormed,
   renderUpdatedReadme,
   renderUpdatedReadmeEn,
   replaceBadgeStamp,
@@ -364,4 +365,23 @@ test('applyVerified + buildTable: колонка «Проверено» появ
   const table = buildTable(stamped);
   assert.ok(table.includes('| # | Бот | Проверено | Ссылка |'));
   assert.ok(table.includes('| 1 | @a_bot | 2026-10 |'));
+});
+
+test('isWellFormed: корректные записи проходят', () => {
+  assert.equal(isWellFormed([bot('a_bot'), bot('b_bot', { verified: '2026-10' })]), true);
+  assert.equal(isWellFormed([]), true);
+});
+
+test('isWellFormed: нестроковый handle отклоняется (иначе sort-bots молча перепишет файл)', () => {
+  assert.equal(isWellFormed([{ handle: 123 }]), false);
+  assert.equal(isWellFormed([{ handle: null }]), false);
+  assert.equal(isWellFormed([{ handle: 'a_bot' }, { handle: 123 }]), false);
+});
+
+test('isWellFormed: не-объекты и null отклоняются', () => {
+  assert.equal(isWellFormed([null]), false);
+  assert.equal(isWellFormed([42]), false);
+  assert.equal(isWellFormed(['a_bot']), false);
+  assert.equal(isWellFormed([['a_bot']]), false);
+  assert.equal(isWellFormed([{}]), false);
 });

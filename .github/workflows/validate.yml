@@ -23,7 +23,10 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          node --test --experimental-test-coverage tests/lib.test.mjs tests/validate-schema.test.mjs 2>&1 | tee coverage.txt
+          # Файлы тестов перечислять не нужно: node --test находит tests/*.test.mjs
+          # сам — новый файл подхватывается автоматически (при явном перечислении
+          # он молча не попадал бы в прогон).
+          node --test --experimental-test-coverage 2>&1 | tee coverage.txt
           PCT=$(grep -oE 'all files[[:space:]]*\|[[:space:]]*[0-9.]+' coverage.txt | grep -oE '[0-9.]+$' | head -1)
           echo "Coverage: $PCT%"
           echo "PCT=$PCT" >> "$GITHUB_ENV"
