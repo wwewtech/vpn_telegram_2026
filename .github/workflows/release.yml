@@ -87,8 +87,12 @@ jobs:
             else
               echo "- Первый релиз. В каталоге $NOW_BOTS ботов, еженедельная автопроверка живости, автосортировка и генерация README."
             fi
+            echo ""
+            echo "### Реестр живости (еженедельные наблюдения linkcheck)"
+            echo ""
+            node scripts/liveness-stats.mjs --markdown || echo "- Снапшотов пока нет: реестр начнёт наполняться с первого еженедельного прогона."
           } > release-notes.md
-          head -20 release-notes.md
+          head -40 release-notes.md
 
       - name: Create tag and release
         env:

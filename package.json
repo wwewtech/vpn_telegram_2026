@@ -13,6 +13,7 @@
     "test": "node --test",
     "check-links": "node scripts/check-links.mjs",
     "check-links:verified": "node scripts/check-links.mjs --stamp-verified",
+    "liveness": "node scripts/liveness-stats.mjs",
     "check": "npm run validate && node scripts/generate-readme.mjs --check"
   },
   "engines": {

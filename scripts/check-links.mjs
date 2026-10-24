@@ -18,17 +18,21 @@
 // Самопроверка метода (канарейка): перед стартом скрипт проверяет две заведомо известные
 // страницы t.me — живую (BotFather) и несуществующую. Если t.me сменит разметку и метод
 // перестанет их различать, проверка завершится ошибкой метода, а не молчаливым «все живы».
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   DATA_PATH,
+  LIVENESS_DIR,
   applyVerified,
+  buildLivenessSnapshot,
   isMissingBotPage,
   isTmeMarkupUnrecognized,
   isWellFormed,
   loadBots,
   serializeBots,
+  serializeSnapshot,
   sortBots,
 } from './lib.mjs';
 
@@ -172,6 +176,22 @@ const results = await checkAll(bots);
 const dead = results.filter((item) => item.status === 'dead');
 const unreachable = results.filter((item) => item.status === 'unreachable');
 const report = renderReport(results, new Date().toISOString().slice(0, 10));
+
+// Снапшот живости для реестра смертности: пишется ВСЕГДА (и при мёртвых тоже —
+// именно мёртвые и есть предмет реестра). Идёт в тот же авто-PR, что и verified:
+// одна точка данных в неделю, диффуется в git построчно (statuses отсортирован).
+// Существующий снапшот того же дня не перезаписывается (прогон в течение дня
+// идемпотентен), чтобы повторные запуски linkcheck не плодили диффы.
+const snapshotDate = new Date().toISOString().slice(0, 10);
+const snapshotPath = path.join(LIVENESS_DIR, `${snapshotDate}.json`);
+if (!existsSync(snapshotPath)) {
+  const snapshot = buildLivenessSnapshot(results, snapshotDate);
+  mkdirSync(LIVENESS_DIR, { recursive: true });
+  writeFileSync(snapshotPath, serializeSnapshot(snapshot), 'utf8');
+  console.log(`liveness: снапшот записан — ${snapshotPath} (ok: ${snapshot.ok}, dead: ${snapshot.dead}).`);
+} else {
+  console.log(`liveness: снапшот ${snapshotDate} уже существует — не перезаписываю.`);
+}
 
 // Отчёт записывается ДО stamp-блока: он зависит только от results, а stamp
 // (запись данных + пересборка README) может упасть — при старом порядке

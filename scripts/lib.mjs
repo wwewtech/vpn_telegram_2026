@@ -1,6 +1,7 @@
 // Общие утилиты для скриптов каталога: пути, чтение данных, сортировка,
-// сериализация, сборка таблицы, проверки и обновление README.
-import { readFileSync } from 'node:fs';
+// сериализация, сборка таблицы, проверки и обновление README,
+// снапшоты живости (liveness) и статистика выживаемости.
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +9,7 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const README_PATH = path.join(ROOT, 'README.md');
 export const README_EN_PATH = path.join(ROOT, 'README_EN.md');
 export const DATA_PATH = path.join(ROOT, 'data', 'bots.json');
+export const LIVENESS_DIR = path.join(ROOT, 'data', 'liveness');
 
 export const START = '<!-- BOTS:START -->';
 export const END = '<!-- BOTS:END -->';
@@ -296,4 +298,114 @@ export function applyVerified(bots, results, checkedAt) {
     return bot;
   });
   return { bots: updated, changed };
+}
+
+// ============================== LIVENESS ==============================
+// Реестр смертности: linkcheck каждую неделю фиксирует статус всех ботов.
+// Снапшоты копятся в data/liveness/YYYY-MM-DD.json, из них считается
+// выживаемость, диффы недель и реестр погибших (death registry).
+
+// Снапшот живости из результатов checkAll: { date, total, ok, dead, unreachable, statuses }.
+// Чистая функция: только данные, никакой записи на диск.
+export function buildLivenessSnapshot(results, dateISO) {
+  const statuses = {};
+  for (const item of results) {
+    statuses[item.handle] = item.status;
+  }
+  return {
+    date: dateISO,
+    total: results.length,
+    ok: results.filter((r) => r.status === 'ok').length,
+    dead: results.filter((r) => r.status === 'dead').length,
+    unreachable: results.filter((r) => r.status === 'unreachable').length,
+    statuses,
+  };
+}
+
+export function serializeSnapshot(snapshot) {
+  // Компактный формат: один хендл — одна строка, легко диффится в git.
+  const lines = Object.entries(snapshot.statuses)
+    .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase()))
+    .map(([handle, status]) => `    ${JSON.stringify(handle)}: ${JSON.stringify(status)}`);
+  return [
+    `{`,
+    `  "date": ${JSON.stringify(snapshot.date)},`,
+    `  "total": ${snapshot.total},`,
+    `  "ok": ${snapshot.ok},`,
+    `  "dead": ${snapshot.dead},`,
+    `  "unreachable": ${snapshot.unreachable},`,
+    `  "statuses": {`,
+    ...lines.map((l, i) => (i === lines.length - 1 ? l : `${l},`)),
+    `  }`,
+    `}`,
+    ``,
+  ].join('\n');
+}
+
+// Все доступные даты снапшотов (сортировка по дате).
+export function listSnapshotDates(dir = LIVENESS_DIR) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+    .map((f) => f.replace(/\.json$/, ''))
+    .sort();
+}
+
+export function loadSnapshots(dir = LIVENESS_DIR) {
+  return listSnapshotDates(dir).map((date) => {
+    const raw = JSON.parse(readFileSync(path.join(dir, `${date}.json`), 'utf8'));
+    if (raw.date !== date) throw new Error(`liveness/${date}.json: поле date (${raw.date}) не совпадает с именем файла`);
+    return raw;
+  });
+}
+
+// Статистика по накопленным снапшотам. Чистая функция от массива снапшотов.
+//   - survival: последняя известная дата статуса «ok» для каждого хендла
+//   - deaths: хендлы, чей последний статус «dead» (и когда это случилось впервые)
+//   - weekly: по-недельные диффы: сколько ok/dead/unreachable в каждом прогоне
+export function computeLivenessStats(snapshots) {
+  const byDate = new Map(); // date -> snapshot
+  for (const s of snapshots) byDate.set(s.date, s);
+
+  // Последний статус каждого хендла по хронологии снапшотов.
+  const lastStatus = new Map(); // handle -> { status, date }
+  const seenAlive = new Map(); // handle -> первая дата, когда появился (ok/unreachable)
+  for (const s of snapshots) {
+    for (const [handle, status] of Object.entries(s.statuses)) {
+      lastStatus.set(handle, { status, date: s.date });
+      if (status !== 'dead' && !seenAlive.has(handle)) seenAlive.set(handle, s.date);
+    }
+  }
+
+  // Погибшие: последний статус dead. firstDead — когда dead увидели впервые.
+  const firstDead = new Map();
+  for (const s of snapshots) {
+    for (const [handle, status] of Object.entries(s.statuses)) {
+      if (status === 'dead' && !firstDead.has(handle)) firstDead.set(handle, s.date);
+    }
+  }
+  const deaths = [...firstDead.entries()]
+    .filter(([handle]) => (lastStatus.get(handle)?.status ?? '') === 'dead')
+    .map(([handle, diedOn]) => ({
+      handle,
+      diedOn,
+      firstSeen: seenAlive.get(handle) ?? null, // когда впервые наблюдался живым
+    }))
+    .sort((a, b) => a.handle.toLowerCase().localeCompare(b.handle.toLowerCase()));
+
+  const weekly = snapshots.map((s) => ({ date: s.date, ok: s.ok, dead: s.dead, unreachable: s.unreachable }));
+
+  return { snapshots: snapshots.length, weekly, deaths, lastStatus };
+}
+
+// Markdown-таблица реестра смертности для README/релизов.
+export function renderDeathRegistry(stats) {
+  if (stats.deaths.length === 0) {
+    return ['| Бот | Жил в каталоге | Умер |', '| --- | --- | --- |', '| _все живы — потерь нет_ | — | — |'].join('\n');
+  }
+  const rows = stats.deaths.map(
+    (d) =>
+      `| @${d.handle} | ${d.firstSeen ? d.firstSeen + ' — ' : ''}${d.diedOn} | ${d.diedOn} |`,
+  );
+  return ['| Бот | Наблюдался | Констатирована смерть |', '| --- | --- | --- |', ...rows].join('\n');
 }
