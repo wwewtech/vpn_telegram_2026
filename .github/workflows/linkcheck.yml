@@ -38,14 +38,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_TITLE: "chore: автопроверка — verified обновлён"
         run: |
-          if git diff --quiet; then
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
             echo "verified: изменений нет — PR не нужен."
             exit 0
           fi
           BRANCH="auto/verified-$(date -u +%Y-%m-%d)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/bots.json README.md README_EN.md
+          # Снапшот liveness (data/liveness/) — новые untracked-файлы, git diff их
+          # не видит, поэтому проверка выше учитывает ls-files --others.
+          git add data/bots.json data/liveness README.md README_EN.md
           git commit -m "chore: auto-verify bots — verified stamped by weekly check [skip ci]"
           git push origin "HEAD:$BRANCH"
           # Тело PR: отчёт, если он непуст; иначе — пояснение. Проверка -s (а не
