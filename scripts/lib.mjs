@@ -307,17 +307,35 @@ export function applyVerified(bots, results, checkedAt) {
 
 // Снапшот живости из результатов checkAll: { date, total, ok, dead, unreachable, statuses }.
 // Чистая функция: только данные, никакой записи на диск.
+// Бросает на неизвестном статусе: раньше мусорный статус ('Ok', 'zombie', опечатка
+// в будущем коде) проходил молча, и инвариант total === ok+dead+unreachable
+// нарушался без единого сообщения (воспроизведено тестом). Громкое падение лучше
+// тихой порчи реестра.
+const VALID_STATUSES = new Set(['ok', 'dead', 'unreachable']);
+
 export function buildLivenessSnapshot(results, dateISO) {
   const statuses = {};
+  let ok = 0;
+  let dead = 0;
+  let unreachable = 0;
   for (const item of results) {
+    if (!VALID_STATUSES.has(item.status)) {
+      throw new Error(
+        `buildLivenessSnapshot: неизвестный статус ${JSON.stringify(item.status)} для @${item.handle} ` +
+          `(допустимы: ok, dead, unreachable)`,
+      );
+    }
     statuses[item.handle] = item.status;
+    if (item.status === 'ok') ok += 1;
+    else if (item.status === 'dead') dead += 1;
+    else unreachable += 1;
   }
   return {
     date: dateISO,
     total: results.length,
-    ok: results.filter((r) => r.status === 'ok').length,
-    dead: results.filter((r) => r.status === 'dead').length,
-    unreachable: results.filter((r) => r.status === 'unreachable').length,
+    ok,
+    dead,
+    unreachable,
     statuses,
   };
 }
@@ -351,22 +369,63 @@ export function listSnapshotDates(dir = LIVENESS_DIR) {
     .sort();
 }
 
+// Проверка одного снапшота против контракта schema/liveness.schema.json.
+// Схема раньше существовала, но никто её не применял («контракт без контролёра»):
+// битый снапшот грузился молча. Чистая функция: (объект, схема) → проблемы.
+export function livenessProblems(snapshot, schema) {
+  if (!schema || typeof schema !== 'object') return ['схема liveness не передана или не объект'];
+  const problems = [];
+  const req = Array.isArray(schema.required) ? schema.required : [];
+  for (const key of req) {
+    if (!(key in snapshot)) problems.push(`нет обязательного поля "${key}"`);
+  }
+  const props = schema.properties ?? {};
+  for (const key of ['date', 'total', 'ok', 'dead', 'unreachable']) {
+    const rule = props[key];
+    if (!rule || snapshot[key] === undefined) continue;
+    if (rule.type === 'integer' && !Number.isInteger(snapshot[key])) {
+      problems.push(`"${key}" должно быть целым, получено ${JSON.stringify(snapshot[key])}`);
+    }
+    if (rule.type === 'string' && typeof snapshot[key] !== 'string') {
+      problems.push(`"${key}" должно быть строкой, получено ${JSON.stringify(snapshot[key])}`);
+    }
+    if (rule.pattern && typeof snapshot[key] === 'string' && !new RegExp(rule.pattern).test(snapshot[key])) {
+      problems.push(`"${key}" не подходит под шаблон ${rule.pattern}`);
+    }
+  }
+  // statuses: ключи — хендлы, значения — только ok|dead|unreachable
+  const statusRule = props.statuses?.additionalProperties;
+  if (statusRule?.pattern && snapshot.statuses && typeof snapshot.statuses === 'object') {
+    const re = new RegExp(statusRule.pattern);
+    for (const [handle, status] of Object.entries(snapshot.statuses)) {
+      if (!re.test(status)) problems.push(`statuses["${handle}"] = ${JSON.stringify(status)} — недопустимый статус`);
+    }
+  }
+  return problems;
+}
+
 export function loadSnapshots(dir = LIVENESS_DIR) {
+  const schemaPath = path.join(ROOT, 'schema', 'liveness.schema.json');
+  const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
   return listSnapshotDates(dir).map((date) => {
     const raw = JSON.parse(readFileSync(path.join(dir, `${date}.json`), 'utf8'));
     if (raw.date !== date) throw new Error(`liveness/${date}.json: поле date (${raw.date}) не совпадает с именем файла`);
+    const problems = livenessProblems(raw, schema);
+    if (problems.length > 0) {
+      throw new Error(`liveness/${date}.json не соответствует контракту: ${problems.join('; ')}`);
+    }
     return raw;
   });
 }
 
 // Статистика по накопленным снапшотам. Чистая функция от массива снапшотов.
-//   - survival: последняя известная дата статуса «ok» для каждого хендла
-//   - deaths: хендлы, чей последний статус «dead» (и когда это случилось впервые)
-//   - weekly: по-недельные диффы: сколько ok/dead/unreachable в каждом прогоне
+//   - lastStatus: последний известный статус каждого хендла
+//   - deaths: хендлы, чей последний статус «dead»
+//     diedOn — дата смерти: первое dead-наблюдение ПОСЛЕ последнего ok.
+//     (Не «первое dead вообще»: сценарий dead → ok → dead давал diedOn
+//     до промежуточного ok — эпитафия врала, бот был жив между. Воспроизведено тестом.)
+//   - weekly: агрегаты каждого прогона (ok/dead/unreachable) — НЕ диффы
 export function computeLivenessStats(snapshots) {
-  const byDate = new Map(); // date -> snapshot
-  for (const s of snapshots) byDate.set(s.date, s);
-
   // Последний статус каждого хендла по хронологии снапшотов.
   const lastStatus = new Map(); // handle -> { status, date }
   const seenAlive = new Map(); // handle -> первая дата, когда появился (ok/unreachable)
@@ -377,21 +436,31 @@ export function computeLivenessStats(snapshots) {
     }
   }
 
-  // Погибшие: последний статус dead. firstDead — когда dead увидели впервые.
-  const firstDead = new Map();
-  for (const s of snapshots) {
-    for (const [handle, status] of Object.entries(s.statuses)) {
-      if (status === 'dead' && !firstDead.has(handle)) firstDead.set(handle, s.date);
+  // Погибшие: последний статус dead. diedOn — первое dead после последнего ok
+  // (смерть «доказана», если после неё не было ok; до последнего ok смерть
+  // могла быть ложной — сеть, ошибка метода — и бот воскресал).
+  const deaths = [];
+  for (const [handle, last] of lastStatus) {
+    if (last.status !== 'dead') continue;
+    // Идём по хронологии: после последнего ok/unreachable берём ПЕРВЫЙ dead.
+    let lastOkDate = null;
+    let diedOn = null;
+    for (const s of snapshots) {
+      const status = s.statuses[handle];
+      if (status === undefined) continue;
+      if (status === 'ok' || status === 'unreachable') {
+        lastOkDate = s.date;
+        diedOn = null; // воскрешение обнуляет предыдущую смерть
+      }
+      if (status === 'dead' && diedOn === null) diedOn = s.date; // первый dead после ok
     }
-  }
-  const deaths = [...firstDead.entries()]
-    .filter(([handle]) => (lastStatus.get(handle)?.status ?? '') === 'dead')
-    .map(([handle, diedOn]) => ({
+    deaths.push({
       handle,
       diedOn,
       firstSeen: seenAlive.get(handle) ?? null, // когда впервые наблюдался живым
-    }))
-    .sort((a, b) => a.handle.toLowerCase().localeCompare(b.handle.toLowerCase()));
+    });
+  }
+  deaths.sort((a, b) => a.handle.toLowerCase().localeCompare(b.handle.toLowerCase()));
 
   const weekly = snapshots.map((s) => ({ date: s.date, ok: s.ok, dead: s.dead, unreachable: s.unreachable }));
 
@@ -399,6 +468,8 @@ export function computeLivenessStats(snapshots) {
 }
 
 // Markdown-таблица реестра смертности для README/релизов.
+// «Жизнь» = от первого наблюдения до смерти; если бот был dead, воскрес и
+// умер снова — diedOn указывает на смерть после последнего «ок».
 export function renderDeathRegistry(stats) {
   if (stats.deaths.length === 0) {
     return ['| Бот | Жил в каталоге | Умер |', '| --- | --- | --- |', '| _все живы — потерь нет_ | — | — |'].join('\n');
@@ -407,5 +478,5 @@ export function renderDeathRegistry(stats) {
     (d) =>
       `| @${d.handle} | ${d.firstSeen ? d.firstSeen + ' — ' : ''}${d.diedOn} | ${d.diedOn} |`,
   );
-  return ['| Бот | Наблюдался | Констатирована смерть |', '| --- | --- | --- |', ...rows].join('\n');
+  return ['| Бот | Жил в каталоге | Умер |', '| --- | --- | --- |', ...rows].join('\n');
 }

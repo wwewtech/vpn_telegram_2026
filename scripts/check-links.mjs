@@ -154,6 +154,23 @@ if (!isWellFormed(bots)) {
   process.exit(1);
 }
 
+// Дедуп-гард: дубликаты по lowercase (Abc_bot + abc_bot) раньше проходили в
+// снапшот молча — statuses хранил оба написания, и в реестре погибших один
+// «умирал», а второй-фантом «жил». collectProblems это ловит, но check-links
+// его не вызывал. Гард дублирует ровно одно правило валидации — остальное
+// проверяет validate.mjs в CI (required check).
+{
+  const seen = new Set();
+  for (const bot of bots) {
+    const key = bot.handle.toLowerCase();
+    if (seen.has(key)) {
+      console.error(`Ошибка: дубликат хендла "@${bot.handle}" (без учёта регистра) — снапшот будет противоречив. Запустите npm run validate.`);
+      process.exit(1);
+    }
+    seen.add(key);
+  }
+}
+
 const canary = await checkCanary();
 if (!canary.ok) {
   const message = `Самопроверка метода не пройдена: ${canary.detail}.`;
