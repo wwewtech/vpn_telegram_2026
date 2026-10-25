@@ -65,11 +65,13 @@ export function sortBots(bots) {
   return [...bots].sort(compareBots);
 }
 
-// Канонический формат файла: один объект в строке. Порядок ключей нормализуется:
+// Канонический формат файла: один объект в строку. Порядок ключей нормализуется:
 // handle первым (обязательное поле схемы), verified вторым, остальные (невалидные
 // для контракта, но сериализатор не должен терять данные) — в исходном порядке.
 // Без нормализации перевёрнутая запись из чужого PR проходила validate и
 // порождала вторую «каноническую» форму файла — вечный git-шум при npm run fix.
+// Ключи со значением undefined пропускаются: JSON.stringify(undefined) — это
+// буквально "undefined", невалидный JSON (ловится тестом round-trip).
 export function serializeBots(bots) {
   const lines = bots.map((bot) => {
     if (bot === null || typeof bot !== 'object' || Array.isArray(bot)) {
@@ -77,7 +79,7 @@ export function serializeBots(bots) {
     }
     const order = ['handle', 'verified', ...Object.keys(bot).filter((key) => key !== 'handle' && key !== 'verified')];
     const fields = order
-      .filter((key) => key in bot)
+      .filter((key) => key in bot && bot[key] !== undefined)
       .map((key) => `${JSON.stringify(key)}: ${JSON.stringify(bot[key])}`);
     return `  { ${fields.join(', ')} }`;
   });
@@ -274,7 +276,13 @@ function countOccurrences(text, marker) {
 //                  автопрогон не понижает — ручные данные важнее автостатуса;
 //   - «dead»    → verified снимается (бот не работает — свежесть протухла);
 //   - «unreachable» → verified не трогаем (сеть ≠ мёртвый бот).
+// checkedAt строго YYYY-MM: невалидный месяц раньше молча попадал бы в данные
+// и ловился бы только следующим CI-прогоном (пассивная защита) — теперь
+// падает сразу, у источника.
 export function applyVerified(bots, results, checkedAt) {
+  if (typeof checkedAt !== 'string' || !VERIFIED_RE.test(checkedAt)) {
+    throw new Error(`applyVerified: checkedAt должен быть строкой «YYYY-MM», получено: ${JSON.stringify(checkedAt)}`);
+  }
   const byHandle = new Map();
   for (const item of results) {
     byHandle.set(String(item.handle).toLowerCase(), item.status);
