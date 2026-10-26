@@ -101,4 +101,10 @@ jobs:
             if [ -n "$ISSUE" ]; then
               gh issue comment "$ISSUE" --body "Обновление: все ссылки доступны ✅" && gh issue close "$ISSUE"
             fi
+            # Q1 (раунд 9): сбой-Issue тоже закрываем при восстановлении метода —
+            # раньше висел вечно, и каждый сбой плодил новый вечный Issue.
+            ISSUE_M=$(gh issue list --state open --search "сбой метода in:title" --json number --jq '.[0].number')
+            if [ -n "$ISSUE_M" ]; then
+              gh issue comment "$ISSUE_M" --body "Обновление: метод проверки восстановлен, полный прогон прошёл без сбоев ✅" && gh issue close "$ISSUE_M"
+            fi
           fi

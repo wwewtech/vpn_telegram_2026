@@ -18,7 +18,7 @@
 // Самопроверка метода (канарейка): перед стартом скрипт проверяет две заведомо известные
 // страницы t.me — живую (BotFather) и несуществующую. Если t.me сменит разметку и метод
 // перестанет их различать, проверка завершится ошибкой метода, а не молчаливым «все живы».
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -245,15 +245,30 @@ const report = renderReport(results, new Date().toISOString().slice(0, 10));
 // Снапшот живости для реестра смертности: пишется ВСЕГДА (и при мёртвых тоже —
 // именно мёртвые и есть предмет реестра). Идёт в тот же авто-PR, что и verified:
 // одна точка данных в неделю, диффуется в git построчно (statuses отсортирован).
-// Существующий снапшот того же дня не перезаписывается (прогон в течение дня
-// идемпотентен), чтобы повторные запуски linkcheck не плодили диффы.
+// Идемпотентность дня с одним исключением: если каталог ИЗМЕНИЛСЯ после снапшота
+// (добавили/удалили ботов), снапшот перезаписывается — иначе реестр живости
+// навсегда фиксировал бы устаревший состав (Q2, раунд 9: снапшот 237 при
+// каталоге 287 после PR с новыми ботами — реестр лгал, verified шёл вперёд).
+// Повторный прогон БЕЗ изменений каталога снапшот не трогает (диффов нет).
 const snapshotDate = new Date().toISOString().slice(0, 10);
 const snapshotPath = path.join(LIVENESS_DIR, `${snapshotDate}.json`);
-if (!existsSync(snapshotPath)) {
-  const snapshot = buildLivenessSnapshot(results, snapshotDate);
+const newSnapshot = buildLivenessSnapshot(results, snapshotDate);
+let snapshotChanged = !existsSync(snapshotPath);
+if (!snapshotChanged) {
+  try {
+    const existing = JSON.parse(readFileSync(snapshotPath, 'utf8'));
+    // Состав каталога изменился — снапшот дня больше не соответствует каталогу.
+    const existingHandles = Object.keys(existing.statuses ?? {}).sort().join(',');
+    const newHandles = Object.keys(newSnapshot.statuses).sort().join(',');
+    snapshotChanged = existingHandles !== newHandles;
+  } catch {
+    snapshotChanged = true; // битый существующий снапшот — перезаписываем
+  }
+}
+if (snapshotChanged) {
   mkdirSync(LIVENESS_DIR, { recursive: true });
-  writeFileSync(snapshotPath, serializeSnapshot(snapshot), 'utf8');
-  console.log(`liveness: снапшот записан — ${snapshotPath} (ok: ${snapshot.ok}, dead: ${snapshot.dead}).`);
+  writeFileSync(snapshotPath, serializeSnapshot(newSnapshot), 'utf8');
+  console.log(`liveness: снапшот ${existsSync(snapshotPath) ? 'обновлён (состав каталога изменился)' : 'записан'} — ${snapshotPath} (ok: ${newSnapshot.ok}, dead: ${newSnapshot.dead}).`);
 } else {
   console.log(`liveness: снапшот ${snapshotDate} уже существует — не перезаписываю.`);
 }
