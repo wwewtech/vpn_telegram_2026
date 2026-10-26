@@ -48,7 +48,12 @@ jobs:
           # Снапшот liveness (data/liveness/) — новые untracked-файлы, git diff их
           # не видит, поэтому проверка выше учитывает ls-files --others.
           git add data/bots.json data/liveness README.md README_EN.md
-          git commit -m "chore: auto-verify bots — verified stamped by weekly check [skip ci]"
+          # ВАЖНО: без [skip ci]. С [skip ci] workflows не запускались бы на
+          # этом коммите (документация GitHub: skipping-workflow-runs), required
+          # check "Validate data and README" остался бы "Expected" навсегда —
+          # и смёрджить авто-PR смог бы только админ с bypass. Пусть CI гоняется:
+          # check бесплатный, а merge становится доступен обычным путём.
+          git commit -m "chore: auto-verify bots — verified stamped by weekly check"
           git push origin "HEAD:$BRANCH"
           # Тело PR: отчёт, если он непуст; иначе — пояснение. Проверка -s (а не
           # "cat ... || echo"): cat пустого файла возвращает код 0, поэтому
