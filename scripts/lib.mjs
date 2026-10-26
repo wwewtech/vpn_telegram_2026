@@ -164,10 +164,26 @@ export function botsRoundFloor(bots) {
 
 const EN_COUNT_RES = [/\b\d+\+\s+bots\b/gi, /\b\d+\+\s+VPN\s+bots\b/gi];
 
+// Английская таблица каталога: те же данные, что и в buildTable, но заголовки
+// колонок на английском. Строится только из хендла и verified — как русская.
+export function buildTableEn(bots) {
+  const withVerified = bots.some((bot) => typeof bot.verified === 'string');
+  const rows = bots.map((bot, index) => {
+    const link = `[t.me/${bot.handle}](https://t.me/${bot.handle})`;
+    if (!withVerified) return `| ${index + 1} | @${bot.handle} | ${link} |`;
+    const verified = typeof bot.verified === 'string' ? bot.verified : '—';
+    return `| ${index + 1} | @${bot.handle} | ${verified} | ${link} |`;
+  });
+  const header = withVerified ? '| # | Bot | Verified | Link |' : '| # | Bot | Link |';
+  const separator = withVerified ? '| --- | --- | --- | --- |' : '| --- | --- | --- |';
+  return [header, separator, ...rows].join('\n');
+}
+
 // Синхронизирует README_EN.md с данными: бейдж updated-YYYY.MM (stamp — значение
-// бейджа из основного README, «YYYY.MM») и метки вида «200+ bots».
-// Чистая функция, файлы не пишет. Идемпотентна: stamp приходит из основного README
-// и меняется только вместе с ним, поэтому при неизменных данных файл не меняется.
+// бейджа из основного README, «YYYY.MM»), метки вида «200+ bots» и таблица
+// каталога между маркерами BOTS:START/END (аналогично русскому README —
+// генерируется из данных, ручные правки перезаписываются).
+// Чистая функция, файлы не пишет. Идемпотентна при неизменных данных.
 // Если файла нет — возвращает source без изменений.
 export function renderUpdatedReadmeEn(source, bots, stamp, present = true) {
   if (!present) return { updated: source, changed: false };
@@ -180,7 +196,22 @@ export function renderUpdatedReadmeEn(source, bots, stamp, present = true) {
     (text, re) => text.replace(re, (m) => m.replace(/\d+\+/, rough)),
     updated,
   );
+  // Таблица: если маркеры есть — заменяем содержимое на сгенерированное.
+  // Если маркеров нет — это легаси-README_EN без таблицы; молча оставляем как есть
+  // (таблицу вставляет единожды тот, кто добавляет маркеры).
+  const region = findEnRegion(updated);
+  if (region) {
+    const newRegion = `\n${buildTableEn(bots)}\n`;
+    updated = updated.slice(0, region.regionStart) + newRegion + updated.slice(region.regionEnd);
+  }
   return { updated, changed: updated !== source };
+}
+
+function findEnRegion(source) {
+  const startIndex = source.indexOf(START);
+  const endIndex = source.indexOf(END);
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) return null;
+  return { regionStart: startIndex + START.length, regionEnd: endIndex };
 }
 
 // Все проверки data/bots.json и README.md: возвращает список проблем (пустой список = всё хорошо).
