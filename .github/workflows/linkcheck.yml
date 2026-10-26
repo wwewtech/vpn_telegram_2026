@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
   issues: write
-  pull_requests: write # без этого gh pr create падал: "Resource not accessible by integration" (воспроизведено в первом бою linkcheck 26.10)
+  pull-requests: write # ДЕФИС! pull_requests — невалидное имя: GitHub отклонял workflow (HTTP 422 "Unexpected value 'pull_requests'"). Без этого права gh pr create падал: "Resource not accessible by integration"
 
 concurrency:
   group: linkcheck
