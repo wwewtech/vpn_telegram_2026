@@ -441,7 +441,15 @@ export function loadSnapshots(dir = LIVENESS_DIR) {
   const schemaPath = path.join(ROOT, 'schema', 'liveness.schema.json');
   const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
   return listSnapshotDates(dir).map((date) => {
-    const raw = JSON.parse(readFileSync(path.join(dir, `${date}.json`), 'utf8'));
+    const file = path.join(dir, `${date}.json`);
+    let raw;
+    try {
+      raw = JSON.parse(readFileSync(file, 'utf8'));
+    } catch (error) {
+      // Раньше наружу летел сырой стек JSON.parse — без имени файла. Для разового
+      // «удали битый снапшот» это разница между минутой и секундой диагностики.
+      throw new Error(`не удалось прочитать ${path.relative(ROOT, file)}: ${error.message}`);
+    }
     if (raw.date !== date) throw new Error(`liveness/${date}.json: поле date (${raw.date}) не совпадает с именем файла`);
     const problems = livenessProblems(raw, schema);
     if (problems.length > 0) {
@@ -458,11 +466,17 @@ export function loadSnapshots(dir = LIVENESS_DIR) {
 //     (Не «первое dead вообще»: сценарий dead → ok → dead давал diedOn
 //     до промежуточного ok — эпитафия врала, бот был жив между. Воспроизведено тестом.)
 //   - weekly: агрегаты каждого прогона (ok/dead/unreachable) — НЕ диффы
+// Снапшоты сортируются по дате на входе: хронология — инвариант расчётов
+// (lastStatus/diedOn считаются «по порядку»). CLI-путь сортирует имена файлов,
+// но функция экспортирована — без своей сортировки несортированный массив
+// молча менял вердикты: [26(dead), 05(ok)] давал lastStatus=ok и умерший
+// выпадал из реестра (воспроизведено тестом).
 export function computeLivenessStats(snapshots) {
+  const ordered = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
   // Последний статус каждого хендла по хронологии снапшотов.
   const lastStatus = new Map(); // handle -> { status, date }
   const seenAlive = new Map(); // handle -> первая дата, когда появился (ok/unreachable)
-  for (const s of snapshots) {
+  for (const s of ordered) {
     for (const [handle, status] of Object.entries(s.statuses)) {
       lastStatus.set(handle, { status, date: s.date });
       if (status !== 'dead' && !seenAlive.has(handle)) seenAlive.set(handle, s.date);
@@ -478,7 +492,7 @@ export function computeLivenessStats(snapshots) {
     // Идём по хронологии: после последнего ok/unreachable берём ПЕРВЫЙ dead.
     let lastOkDate = null;
     let diedOn = null;
-    for (const s of snapshots) {
+    for (const s of ordered) {
       const status = s.statuses[handle];
       if (status === undefined) continue;
       if (status === 'ok' || status === 'unreachable') {
@@ -495,7 +509,7 @@ export function computeLivenessStats(snapshots) {
   }
   deaths.sort((a, b) => a.handle.toLowerCase().localeCompare(b.handle.toLowerCase()));
 
-  const weekly = snapshots.map((s) => ({ date: s.date, ok: s.ok, dead: s.dead, unreachable: s.unreachable }));
+  const weekly = ordered.map((s) => ({ date: s.date, ok: s.ok, dead: s.dead, unreachable: s.unreachable }));
 
   return { snapshots: snapshots.length, weekly, deaths, lastStatus };
 }
