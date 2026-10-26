@@ -48,6 +48,17 @@ function sleep(ms) {
 
 const USER_AGENT = 'Mozilla/5.0 (link-checker; +https://github.com/wwewtech/vpn_telegram_2026)';
 
+// Максимальное число пустых ответов подряд, после которого прогон признаётся
+// отравленным рейт-лимитом t.me. Пустая страница (HTTP 200, нет og:title) —
+// признак троттлинга: наша же охота словила 249 пустых из 549 подряд.
+// Держим счётчик: 8 подряд (2 полных батча) — это не сеть, это t.me нас душит.
+const EMPTY_RESPONSE_STREAK_LIMIT = 8;
+
+// Фатальная ошибка метода: прокидывается сквозь catch в fetchPage и валит прогон.
+class MethodError extends Error {}
+
+let emptyStreak = 0;
+
 async function fetchPage(handle, attempt = 1) {
   const url = `https://t.me/${handle}`;
   try {
@@ -58,10 +69,29 @@ async function fetchPage(handle, attempt = 1) {
     if (!response.ok) return { handle, status: 'unreachable', detail: `HTTP ${response.status}` };
     const html = await response.text();
     if (isMissingBotPage(html, handle)) {
+      emptyStreak = 0; // заглушка — осмысленный ответ, троттлинга нет
       return { handle, status: 'dead', detail: 'страница-заглушка «Contact» — хендл не существует' };
     }
+    // Пустая страница = рейт-лимит (канарейка это не ловит: она ДО цикла).
+    // Раньше такой ответ считался «ok» — linkcheck врал, что бот жив,
+    // и verified проставлялся непроверенным ботам.
+    if (isTmeMarkupUnrecognized(html)) {
+      emptyStreak += 1;
+      if (emptyStreak >= EMPTY_RESPONSE_STREAK_LIMIT) {
+        throw new MethodError(
+          `рейт-лимит t.me: ${emptyStreak} пустых ответов подряд — дальнейшие результаты недостоверны`,
+        );
+      }
+      if (attempt < 3) {
+        await sleep(3000);
+        return fetchPage(handle, attempt + 1);
+      }
+      return { handle, status: 'unreachable', detail: 'пустая страница t.me (нет og:title) — троттлинг' };
+    }
+    emptyStreak = 0; // нормальный ответ сбрасывает счётчик
     return { handle, status: 'ok' };
   } catch (error) {
+    if (error instanceof MethodError) throw error; // фатал метода — не глотаем
     if (attempt < 2) {
       await sleep(2000);
       return fetchPage(handle, attempt + 1);
@@ -189,7 +219,25 @@ if (!canary.ok) {
   process.exit(1);
 }
 
-const results = await checkAll(bots);
+// checkAll может бросить MethodError (рейт-лимит t.me в середине прогона):
+// данные не тронуты, но и проверка не завершена. Отчёт о сбое метода —
+// в Issue уходит текстом, verified/снапшот не пишутся.
+let results;
+try {
+  results = await checkAll(bots);
+} catch (error) {
+  const message = `Сбой метода в середине прогона: ${error.message}`;
+  console.error(`Ошибка: ${message}`);
+  console.error('Часть результатов могла быть получена до сбоя, но они НЕ сохранены — данные не тронуты.');
+  const outIdx = process.argv.indexOf('--out');
+  const failureReport = `## Автопроверка ссылок: сбой метода\n\n${message}\nПрогон остановлен — t.me ограничил частоту запросов. Данные каталога не изменены; повторите прогон позже (или уменьшите каталог).\n`;
+  if (outIdx !== -1 && process.argv[outIdx + 1]) {
+    writeFileSync(process.argv[outIdx + 1], failureReport, 'utf8');
+  } else {
+    process.stdout.write(failureReport);
+  }
+  process.exit(1);
+}
 const dead = results.filter((item) => item.status === 'dead');
 const unreachable = results.filter((item) => item.status === 'unreachable');
 const report = renderReport(results, new Date().toISOString().slice(0, 10));

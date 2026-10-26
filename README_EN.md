@@ -9,7 +9,7 @@
 [![PR welcome](https://img.shields.io/badge/PR-welcome-0ea5e9)](https://github.com/wwewtech/vpn_telegram_2026/pulls)
 [![Telegram](https://img.shields.io/badge/platform-Telegram-229ED9?logo=telegram&logoColor=white)](https://telegram.org)
 
-> Live catalog of Telegram bots with VPN access for Russia.
+> Live catalog of Telegram bots with VPN access for Russia — 200+ VPN bots, auto-sorted, auto-checked weekly.
 >
 > Format: find a working option fast, compare, keep a backup.
 
@@ -331,7 +331,7 @@ _Note: bot availability changes. If one doesn't work, try the next one._
 | 287 | @zlupavpnbot | 2026-10 | [t.me/zlupavpnbot](https://t.me/zlupavpnbot) |
 <!-- BOTS:END -->
 
-Source of truth: [`data/bots.json`](data/bots.json). The table is generated and always sorted A–Z. Links are clean `https://t.me/<handle>` — no referral or tracking params.
+Source of truth: [`data/bots.json`](data/bots.json). The table is generated and always sorted A–Z. Links are clean `https://t.me/<handle>` — no referral or tracking params. 200+ bots and growing.
 
 > **Found a working bot?** Give the repo a ⭐ — one second for you, a huge signal for the project: GitHub and Google rank active repos higher, so the list stays easy to find. The catalog is alive: links are auto-checked weekly, dead bots are removed, new ones are added by the community.
 
