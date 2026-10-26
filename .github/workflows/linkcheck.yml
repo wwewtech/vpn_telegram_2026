@@ -74,6 +74,10 @@ jobs:
           # Сбой метода (заголовок отчёта) — отдельный титул и БЕЗ метки broken:
           # раньше рейт-лимит/поломка разметки получали метку «боты дохнут»,
           # что вводило в заблуждение (N9, раунд 7 охоты).
+          # P4 (раунд 8): оба титула содержат «Автопроверка», поэтому поиск
+          # по подстроке "Автопроверка in:title" матчил ОБА Issue — комменты о
+          # мёртвых улетали в Issue о сбое и наоборот. Каждый поиск ведёт по
+          # своей уникальной части титула.
           if [ -s link-report.md ] && head -1 link-report.md | grep -q "сбой метода"; then
             TITLE="Автопроверка: сбой метода (проверка не завершена)"
             ISSUE=$(gh issue list --state open --search "сбой метода in:title" --json number --jq '.[0].number')
@@ -85,7 +89,7 @@ jobs:
             exit 0
           fi
           TITLE="Автопроверка: возможно нерабочие боты"
-          ISSUE=$(gh issue list --state open --search "Автопроверка in:title" --json number --jq '.[0].number')
+          ISSUE=$(gh issue list --state open --search "возможно нерабочие боты in:title" --json number --jq '.[0].number')
           if [ -s link-report.md ]; then
             if [ -n "$ISSUE" ]; then
               gh issue comment "$ISSUE" --body-file link-report.md
