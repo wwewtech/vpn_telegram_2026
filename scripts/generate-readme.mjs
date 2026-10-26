@@ -38,6 +38,15 @@ if (!isWellFormed(bots)) {
   fail('в data/bots.json есть записи без строкового поля "handle" — запустите npm run validate, чтобы увидеть детали');
 }
 
+// Непустота handle: isWellFormed пропускает пустую строку (typeof string), а
+// buildTable генерировал мусор "| 1 | @ | [t.me/](https://t.me/) |" в оба README
+// молча, с exit 0 (воспроизведено). validate ловит это через HANDLE_RE, но
+// генератор обязан падать сам — до порчи файлов.
+const emptyHandle = bots.find((bot) => bot.handle === '');
+if (emptyHandle !== undefined) {
+  fail('в data/bots.json есть запись с пустым handle — файлы README не перезаписаны. Запустите npm run validate.');
+}
+
 const source = readFileSync(README_PATH, 'utf8').replace(/\r\n/g, '\n');
 
 let result;

@@ -138,6 +138,7 @@ function findRegion(source) {
   if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) return null;
   return { regionStart: startIndex + START.length, regionEnd: endIndex };
 }
+// Общий поиск региона таблицы — используется и русским, и английским рендером.
 
 // Обновляет таблицу между маркерами и бейдж updated-YYYY.MM. Чистая функция, файлы не пишет.
 export function renderUpdatedReadme(source, bots, date = new Date()) {
@@ -199,19 +200,12 @@ export function renderUpdatedReadmeEn(source, bots, stamp, present = true) {
   // Таблица: если маркеры есть — заменяем содержимое на сгенерированное.
   // Если маркеров нет — это легаси-README_EN без таблицы; молча оставляем как есть
   // (таблицу вставляет единожды тот, кто добавляет маркеры).
-  const region = findEnRegion(updated);
+  const region = findRegion(updated);
   if (region) {
     const newRegion = `\n${buildTableEn(bots)}\n`;
     updated = updated.slice(0, region.regionStart) + newRegion + updated.slice(region.regionEnd);
   }
   return { updated, changed: updated !== source };
-}
-
-function findEnRegion(source) {
-  const startIndex = source.indexOf(START);
-  const endIndex = source.indexOf(END);
-  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) return null;
-  return { regionStart: startIndex + START.length, regionEnd: endIndex };
 }
 
 // Все проверки data/bots.json и README.md: возвращает список проблем (пустой список = всё хорошо).
