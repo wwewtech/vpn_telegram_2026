@@ -31,8 +31,20 @@ for (const [handle, last] of stats.lastStatus) {
 }
 if (existsSync(SEED_PATH)) {
   const seed = JSON.parse(readFileSync(SEED_PATH, 'utf8'));
+  const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
   for (const [handle, info] of Object.entries(seed)) {
     if (handle.startsWith('_')) continue; // служебные ключи
+    // AA2 (раунд 19): сид не валидировался никак — опечатка в поле (dieOn вместо
+    // diedOn) уезжала в реестр молча как undefined. Теперь каждая запись сида
+    // проверяется громко, до попадания в реестр.
+    if (!info || typeof info !== 'object' || typeof info.diedOn !== 'string' || !DATE_RE.test(info.diedOn)) {
+      console.error(`Ошибка: seed-deaths.json["@${handle}"] — поле diedOn обязательно и должно быть датой YYYY-MM-DD`);
+      process.exit(1);
+    }
+    if (info.firstSeen !== undefined && (typeof info.firstSeen !== 'string' || !DATE_RE.test(info.firstSeen))) {
+      console.error(`Ошибка: seed-deaths.json["@${handle}"] — firstSeen должен быть датой YYYY-MM-DD`);
+      process.exit(1);
+    }
     const key = handle.toLowerCase();
     if (seeded.has(key)) continue;
     if (aliveNow.has(key)) {
