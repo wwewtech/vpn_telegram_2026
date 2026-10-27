@@ -88,7 +88,9 @@ test('generate-readme.mjs: валидные данные — работает к
   try {
     const r = run(dir, 'generate-readme.mjs');
     assert.equal(r.code, 0);
-    assert.match(r.out, /287 ботов/);
+    // Число ботов меняется с каталогом — проверяем динамически по данным песочницы
+    const data = JSON.parse(readFileSync(path.join(dir, 'data/bots.json'), 'utf8'));
+    assert.match(r.out, new RegExp(`${data.length} ботов`));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

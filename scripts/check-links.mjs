@@ -39,7 +39,14 @@ import {
 const CONCURRENCY = 4;
 const REQUEST_TIMEOUT_MS = 20000;
 const BATCH_PAUSE_MS = 200;
-const CANARY_DEAD = 'zzz_dead_bot_2026_xyz'; // не существует и не должен существовать
+// U7 (раунды 13-14): мёртвая канарейка — валидный хендл (24 симв), который
+// теоретически может зарегистрировать кто угодно через BotFather. Вариант
+// «50 символов — длиннее лимита Telegram» НЕ РАБОТАЕТ (проверено живьём:
+// t.me на невалидный хендл отвечает редиректом на главную, не заглушкой).
+// Правильный фикс — в checkCanary: если dead-канарейка «ожила» (не заглушка),
+// это помеха, а не сбой метода: ворнинг в лог + продолжение проверки.
+// Бомба обезврежена детектом вместо гарантии платформы.
+const CANARY_DEAD = 'zzz_dead_bot_2026_xyz'; // не существует; если зарегистрируют — ворнинг, не блокировка
 const CANARY_LIVE = 'BotFather'; // официальный бот Telegram, существует с 2015 года
 
 function sleep(ms) {
@@ -126,7 +133,17 @@ async function checkCanary() {
   try {
     const deadHtml = await fetchTme(CANARY_DEAD);
     if (!isMissingBotPage(deadHtml, CANARY_DEAD)) {
-      return { ok: false, detail: `несуществующий хендл @${CANARY_DEAD} не распознан как «Contact» (мёртвые боты будут считаться живыми)` };
+      // U7: если страницу без ог:титл или редирект (т.me отвечает на невалидные
+      // хендлы редиректом на главную) — метод ненадёжен, STOP.
+      if (isTmeMarkupUnrecognized(deadHtml)) {
+        return { ok: false, detail: `страница @${CANARY_DEAD} без og:title — невалидный хендл или разметка изменилась` };
+      }
+      // U7: хендл «ожил» — кто-то зарегистрировал CANARY_DEAD. Это НЕ сбой
+      // метода (метод живой распознаёт!), а помеха: предупреждаем и продолжаем.
+      // Старое поведение — вечный блок linkcheck («не распознан как Contact»).
+      console.warn(`⚠ Помеха: мёртвая канарейка @${CANARY_DEAD} отвечает как ЖИВАЯ страница — вероятно, хендл зарегистрировали.`);
+      console.warn('  Метод проверки живых/мёртвых страниц при этом работает — продолжаю.');
+      console.warn('  Действие: смените CANARY_DEAD в scripts/check-links.mjs на свежий незанятый хендл.');
     }
   } catch (error) {
     return { ok: false, detail: `мёртвая канарейка @${CANARY_DEAD}: ${String(error && error.message ? error.message : error)}` };
