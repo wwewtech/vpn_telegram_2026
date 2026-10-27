@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/wwewtech/vpn_telegram_2026/main/schema/liveness.schema.json",
   "title": "Снапшот живости каталога",
-  "description": "Контракт data/liveness/YYYY-MM-DD.json: еженедельный снапшот статусов всех ботов каталога (создаёт linkcheck). Поля date/total/ok/dead/unreachable — агрегаты, statuses — статус каждого хендла: ok | dead | unreachable.",
+  "description": "Контракт data/liveness/YYYY-MM-DD.json: еженедельный снапшот статусов всех ботов каталога (создаёт linkcheck). Поля date/total/ok/dead/unreachable/notbot — агрегаты, statuses — статус каждого хендла: ok | dead | unreachable | notbot.",
   "type": "object",
   "additionalProperties": false,
   "required": ["date", "total", "ok", "dead", "unreachable", "statuses"],
@@ -34,13 +34,18 @@
       "title": "Недоступные (сеть, не смерть)",
       "minimum": 0
     },
+    "notbot": {
+      "type": "integer",
+      "title": "Не боты (каналы/группы — W2, раунд 15)",
+      "minimum": 0
+    },
     "statuses": {
       "type": "object",
       "title": "Статус каждого хендла",
-      "description": "Ключ — хендл бота (формат Telegram), значение — ok | dead | unreachable.",
+      "description": "Ключ — хендл бота (формат Telegram), значение — ok | dead | unreachable | notbot.",
       "additionalProperties": {
         "type": "string",
-        "pattern": "^(ok|dead|unreachable)$"
+        "pattern": "^(ok|dead|unreachable|notbot)$"
       }
     }
   }

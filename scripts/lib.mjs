@@ -367,23 +367,28 @@ export function applyVerified(bots, results, checkedAt) {
 // в будущем коде) проходил молча, и инвариант total === ok+dead+unreachable
 // нарушался без единого сообщения (воспроизведено тестом). Громкое падение лучше
 // тихой порчи реестра.
-const VALID_STATUSES = new Set(['ok', 'dead', 'unreachable']);
+// X2 (раунд 16): notbot добавлен после бага раунда 15 — первый же канал
+// в каталоге валил ВЕСЬ linkcheck при записи снапшота (throw на не-бате).
+// Схема liveness.schema.json расширена синхронно.
+const VALID_STATUSES = new Set(['ok', 'dead', 'unreachable', 'notbot']);
 
 export function buildLivenessSnapshot(results, dateISO) {
   const statuses = {};
   let ok = 0;
   let dead = 0;
   let unreachable = 0;
+  let notbot = 0;
   for (const item of results) {
     if (!VALID_STATUSES.has(item.status)) {
       throw new Error(
         `buildLivenessSnapshot: неизвестный статус ${JSON.stringify(item.status)} для @${item.handle} ` +
-          `(допустимы: ok, dead, unreachable)`,
+          `(допустимы: ok, dead, unreachable, notbot)`,
       );
     }
     statuses[item.handle] = item.status;
     if (item.status === 'ok') ok += 1;
     else if (item.status === 'dead') dead += 1;
+    else if (item.status === 'notbot') notbot += 1;
     else unreachable += 1;
   }
   return {
@@ -392,6 +397,7 @@ export function buildLivenessSnapshot(results, dateISO) {
     ok,
     dead,
     unreachable,
+    notbot,
     statuses,
   };
 }
@@ -408,6 +414,7 @@ export function serializeSnapshot(snapshot) {
     `  "ok": ${snapshot.ok},`,
     `  "dead": ${snapshot.dead},`,
     `  "unreachable": ${snapshot.unreachable},`,
+    `  "notbot": ${snapshot.notbot ?? 0},`,
     `  "statuses": {`,
     ...lines.map((l, i) => (i === lines.length - 1 ? l : `${l},`)),
     `  }`,
@@ -544,9 +551,10 @@ export function renderDeathRegistry(stats) {
   if (stats.deaths.length === 0) {
     return ['| Бот | Жил в каталоге | Умер |', '| --- | --- | --- |', '| _все живы — потерь нет_ | — | — |'].join('\n');
   }
-  const rows = stats.deaths.map(
-    (d) =>
-      `| @${d.handle} | ${d.firstSeen ? d.firstSeen + ' — ' : ''}${d.diedOn} | ${d.diedOn} |`,
-  );
+  const rows = stats.deaths.map((d) => {
+    const base = `| @${d.handle} | ${d.firstSeen ? d.firstSeen + ' — ' : ''}${d.diedOn} | ${d.diedOn} |`;
+    // X4 (раунд 16): note из сида рендерится под таблицей — эпитафия не теряется
+    return d.note ? `${base}\n  — ${d.note}` : base;
+  });
   return ['| Бот | Жил в каталоге | Умер |', '| --- | --- | --- |', ...rows].join('\n');
 }
