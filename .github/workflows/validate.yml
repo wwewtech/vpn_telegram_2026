@@ -10,16 +10,23 @@ permissions:
 
 jobs:
   validate:
-    name: Validate data and README
+    name: Validate data and README (node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      # engines: node>=20 в package.json — раньше проверялся ТОЛЬКО node 24 (CI и
+      # локально). Контрибьютор с node 20 получал бы «должно работать». Matrix
+      # проверяет оба заявленных варианта: если 20 падает — fail раньше релиза.
+      fail-fast: false
+      matrix:
+        node: [20, 24]
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Node.js
+      - name: Set up Node.js ${{ matrix.node }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
 
       - name: Run unit tests with coverage
         run: |
@@ -41,8 +48,10 @@ jobs:
       # незащищённую ветку coverage; README ссылается на shields.io endpoint.
       # main не трогаем: защита ветки запрещает прямые пуши — и это правильно.
       # Ветка coverage — orphan с единственным файлом, история не нужна.
+      # matrix: пушим бейдж один раз — только из node 24 (основной версии),
+      # иначе node 20 перезапишет бейдж своим (возможно иным) процентом.
       - name: Publish coverage badge JSON to coverage branch
-        if: github.ref == 'refs/heads/main' && success()
+        if: github.ref == 'refs/heads/main' && success() && matrix.node == 24
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
