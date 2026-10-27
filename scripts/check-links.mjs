@@ -138,14 +138,20 @@ async function checkCanary() {
     if (isMissingBotPage(liveHtml, CANARY_LIVE)) {
       return { ok: false, detail: `живая страница @${CANARY_LIVE} ошибочно распознана как заглушка «Contact»` };
     }
-    // Y2 (раунд 17): канарейка детектора ТИПА. Если t.me уберёт tgme_page_extra,
-    // tmeEntityType начнёт возвращать null для всех — не-боты пройдут как «ok»,
-    // и детектор W2 умолкнет тихо. У BotFather extra = «@BotFather» → тип bot.
+    // Y2 (раунд 17) + Z1 (раунд 18): канарейка детектора ТИПА. Если t.me уберёт
+    // tgme_page_extra, не-боты пройдут как «ok» — детектор W2 умолкнет тихо.
+    // НО: частичный троттлинг тоже режет extra (при живом og:title) — симуляция
+    // раунда 18 показала ложный фатал. Различаем: extra нет (null) — не фатал,
+    // ворнинг + пропуск детектора в этом прогоне (рейт-лимит); extra есть, но
+    // не распознаётся (не 'bot' и не null) — разметка изменилась, фатал.
     const liveType = tmeEntityType(liveHtml, CANARY_LIVE);
-    if (liveType !== 'bot') {
+    if (liveType === null) {
+      console.warn('⚠ Помеха: у @' + CANARY_LIVE + ' страница без tgme_page_extra (og:title жив) — вероятно троттлинг: детектор типа не-ботов отключён в этом прогоне.');
+      console.warn('  Если t.me действительно убрал extra — это проявится у ВСЕХ ботов, и ворнинги в отчёте это покажут.');
+    } else if (liveType !== 'bot') {
       return {
         ok: false,
-        detail: `у @${CANARY_LIVE} не определяется тип «bot» (tmeEntityType=${JSON.stringify(liveType)}) — tgme_page_extra исчезла или изменилась: детектор не-ботов (W2) больше не надёжен`,
+        detail: `у @${CANARY_LIVE} тип ${JSON.stringify(liveType)} вместо «bot» — tgme_page_extra изменилась: детектор не-ботов (W2) больше не надёжен`,
       };
     }
   } catch (error) {
