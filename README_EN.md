@@ -340,6 +340,8 @@ _Note: bot availability changes. If one doesn't work, try the next one._
 
 Source of truth: [`data/bots.json`](data/bots.json). The table is generated and always sorted A–Z. Links are clean `https://t.me/<handle>` — no referral or tracking params. 200+ bots and growing.
 
+_The "Verified" column means the bot's t.me page was reachable in the given month (weekly auto-check). It is not a guarantee of service quality: the catalog does not check bot content._
+
 > **Found a working bot?** Give the repo a ⭐ — one second for you, a huge signal for the project: GitHub and Google rank active repos higher, so the list stays easy to find. The catalog is alive: links are auto-checked weekly, dead bots are removed, new ones are added by the community.
 
 ## FAQ

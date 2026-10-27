@@ -13,6 +13,9 @@ body:
            подробности в [CONTRIBUTING.md](https://github.com/wwewtech/vpn_telegram_2026/blob/main/CONTRIBUTING.md).
 
         Через Issue быстрее: не нужно ничего запускать локально.
+
+        > ⚠️ **Только боты.** Каталог принимает сущности, которым можно написать в личку.
+        > Каналы и группы отклоняются (автопроверка определяет тип по разметке t.me).
   - type: input
     id: bot
     attributes:

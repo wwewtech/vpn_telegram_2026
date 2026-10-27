@@ -115,6 +115,25 @@ export function isTmeMarkupUnrecognized(html) {
   return match[1].trim() === '';
 }
 
+// W2 (раунд 15): тип t.me-сущности по разметке. Каталог называется «боты»,
+// но linkcheck не отличал ботов от каналов/групп — GuardianVPN и
+// Cheburnet_Bot_VPN (каналы) прожили в каталоге недели до ручного скана T14.
+// Детектор: tgme_page_extra у бота = «@handle», у канала = «N subscribers»,
+// у группы = «N members» (проверено живьём по 287 хендлам в раунде 12).
+// Возвращает 'bot' | 'channel' | 'group' | null (не определить).
+export function tmeEntityType(html, handle) {
+  const extra = String(html).match(/tgme_page_extra[^>]*>([^<]*)</)?.[1]?.trim() ?? '';
+  if (!extra) return null;
+  // Бот: extra = «@handle» (может быть в нижнем регистре или отличаться падежом — сравниваем без регистра)
+  if (extra.replace(/^@/, '').toLowerCase() === String(handle).toLowerCase()) return 'bot';
+  // Канал: «831 subscribers», группа: «100 members, 50 online» и вариации
+  if (/subscribers?\b/i.test(extra)) return 'channel';
+  if (/members?\b/i.test(extra)) return 'group';
+  // Некоторые боты показывают в extra «bot» или «бот» (без @handle)
+  if (/^bot$/i.test(extra) || /^бот$/i.test(extra)) return 'bot';
+  return null; // неизвестный формат — не вето, а сигнал для человека
+}
+
 export function isWellFormed(bots) {
   return bots.every(
     (bot) => bot !== null && typeof bot === 'object' && !Array.isArray(bot) && typeof bot.handle === 'string',
