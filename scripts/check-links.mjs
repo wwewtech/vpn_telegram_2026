@@ -34,6 +34,7 @@ import {
   serializeBots,
   serializeSnapshot,
   sortBots,
+  tmeEntityType,
 } from './lib.mjs';
 
 const CONCURRENCY = 4;
@@ -96,6 +97,16 @@ async function fetchPage(handle, attempt = 1) {
       return { handle, status: 'unreachable', detail: 'пустая страница t.me (нет og:title) — троттлинг' };
     }
     emptyStreak = 0; // нормальный ответ сбрасывает счётчик
+    // W2 (раунд 15): каталог «ботов» — проверяем, что сущность действительно бот.
+    // Каналы/группы (tgme_page_extra «N subscribers»/«N members») раньше проходили
+    // как «ok» — GuardianVPN и Cheburnet_Bot_VPN прожили в каталоге недели.
+    const entityType = tmeEntityType(html, handle);
+    if (entityType === 'channel') {
+      return { handle, status: 'notbot', detail: 'это КАНАЛ (N subscribers), а не бот — каталог принимает только ботов' };
+    }
+    if (entityType === 'group') {
+      return { handle, status: 'notbot', detail: 'это ГРУППА (N members), а не бот — каталог принимает только ботов' };
+    }
     return { handle, status: 'ok' };
   } catch (error) {
     if (error instanceof MethodError) throw error; // фатал метода — не глотаем
@@ -167,7 +178,8 @@ async function checkAll(bots) {
 function renderReport(results, checkedAt) {
   const dead = results.filter((item) => item.status === 'dead');
   const unreachable = results.filter((item) => item.status === 'unreachable');
-  if (dead.length === 0 && unreachable.length === 0) return '';
+  const notbot = results.filter((item) => item.status === 'notbot');
+  if (dead.length === 0 && unreachable.length === 0 && notbot.length === 0) return '';
   const lines = [`## Автопроверка ссылок: ${checkedAt}`, ``, `Проверено ботов: ${results.length}. Подозрительных: ${dead.length}.`];
   if (dead.length > 0) {
     lines.push(
@@ -177,6 +189,16 @@ function renderReport(results, checkedAt) {
       `| Бот | Ссылка | Статус |`,
       `| --- | --- | --- |`,
       ...dead.map((item) => `| @${item.handle} | https://t.me/${item.handle} | ${item.detail} |`),
+    );
+  }
+  if (notbot.length > 0) {
+    lines.push(
+      ``,
+      `### Не боты (${notbot.length}) — каталог принимает только ботов`,
+      ``,
+      `| Хендл | Ссылка | Тип |`,
+      `| --- | --- | --- |`,
+      ...notbot.map((item) => `| @${item.handle} | https://t.me/${item.handle} | ${item.detail} |`),
     );
   }
   if (unreachable.length > 0) {
