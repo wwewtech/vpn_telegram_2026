@@ -19,20 +19,33 @@ const SEED_PATH = path.join(ROOT, 'data', 'liveness', 'seed-deaths.json');
 const snapshots = loadSnapshots();
 const stats = computeLivenessStats(snapshots);
 
-// W3: слияние с сидом ранних смертей (дубликаты по хендлу не добавляются дважды)
+// W3: слияние с сидом ранних смертей (дубликаты по хендлу не добавляются дважды).
+// X3 (раунд 16): сид не добавляет «умершего», если он ЖИВ в снапшотах — сценарий:
+// krona ре-регистрируют, подают заявку, бот в каталоге; снапшоты говорят ok,
+// а сид упрямо говорил бы «умер 19.10». Воскрешение сильнее сида.
 const seeded = new Set(stats.deaths.map((d) => d.handle.toLowerCase()));
+// X3: живые по снапшотам (не-dead) — воскрешение сильнее сида
+const aliveNow = new Set();
+for (const [handle, last] of stats.lastStatus) {
+  if (last.status !== 'dead') aliveNow.add(handle.toLowerCase());
+}
 if (existsSync(SEED_PATH)) {
   const seed = JSON.parse(readFileSync(SEED_PATH, 'utf8'));
   for (const [handle, info] of Object.entries(seed)) {
     if (handle.startsWith('_')) continue; // служебные ключи
-    if (seeded.has(handle.toLowerCase())) continue;
+    const key = handle.toLowerCase();
+    if (seeded.has(key)) continue;
+    if (aliveNow.has(key)) {
+      console.warn(`⚠ Сид: @${handle} числится умершим (${info.diedOn}), но в снапшотах ЖИВ (${stats.lastStatus.get(handle)?.date}) — реестр показывает воскрешение, сид пропущен.`);
+      continue;
+    }
     stats.deaths.push({
       handle,
       diedOn: info.diedOn,
       firstSeen: info.firstSeen ?? null,
       ...(info.note ? { note: info.note } : {}),
     });
-    seeded.add(handle.toLowerCase());
+    seeded.add(key);
   }
   stats.deaths.sort((a, b) => a.handle.toLowerCase().localeCompare(b.handle.toLowerCase()));
 }
