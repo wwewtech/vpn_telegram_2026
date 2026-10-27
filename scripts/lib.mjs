@@ -30,7 +30,11 @@ export function replaceBadgeStamp(text, stamp) {
 
 export const HANDLE_RE = /^[A-Za-z0-9_]{5,32}$/;
 export const VERIFIED_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
-export const REF_LINK_RE = /https?:\/\/t\.me\/[^\s)\]]*\?[^\s)\]]*/;
+// Реферальные/трекинговые ссылки: ловим все схемы и домены Telegram.
+// T10 (раунды 12-13): старая регулярка пропускала tg://resolve?...,
+// telegram.me (старый домен) и #fragment. Каждый проверен — не ловился.
+// tg://join?invite= — легитимная инвайт-ссылка, НЕ реферальная (проверено тестом).
+export const REF_LINK_RE = /(https?:\/\/t\.me\/[^\s)\]]*[?#][^\s)\]]*)|(https?:\/\/telegram\.me\/[^\s)\]]*[?#][^\s)\]]*)|(tg:\/\/(?!join\?invite=)[^\s)\]]*\?[^\s)\]]*)/;
 
 export function loadBots() {
   let data;
