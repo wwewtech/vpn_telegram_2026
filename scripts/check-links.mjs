@@ -138,6 +138,16 @@ async function checkCanary() {
     if (isMissingBotPage(liveHtml, CANARY_LIVE)) {
       return { ok: false, detail: `живая страница @${CANARY_LIVE} ошибочно распознана как заглушка «Contact»` };
     }
+    // Y2 (раунд 17): канарейка детектора ТИПА. Если t.me уберёт tgme_page_extra,
+    // tmeEntityType начнёт возвращать null для всех — не-боты пройдут как «ok»,
+    // и детектор W2 умолкнет тихо. У BotFather extra = «@BotFather» → тип bot.
+    const liveType = tmeEntityType(liveHtml, CANARY_LIVE);
+    if (liveType !== 'bot') {
+      return {
+        ok: false,
+        detail: `у @${CANARY_LIVE} не определяется тип «bot» (tmeEntityType=${JSON.stringify(liveType)}) — tgme_page_extra исчезла или изменилась: детектор не-ботов (W2) больше не надёжен`,
+      };
+    }
   } catch (error) {
     return { ok: false, detail: `живая канарейка @${CANARY_LIVE}: ${String(error && error.message ? error.message : error)}` };
   }
