@@ -13,6 +13,15 @@
 >
 > Format: find a working option fast, compare, keep a backup.
 
+## Contents
+
+- [Why this repo is useful](#why-this-repo-is-useful)
+- [Quick start (60 seconds)](#quick-start-60-seconds)
+- [How to choose a VPN in 2026](#how-to-choose-a-vpn-in-2026)
+- [Catalog of Telegram bots](#catalog-of-telegram-bots)
+- [FAQ](#faq)
+- [How to help](#how-to-help)
+
 ## Why this repo is useful
 
 - One file, no noise: quick way to find a working option.
