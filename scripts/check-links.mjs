@@ -37,9 +37,9 @@ import {
   tmeEntityType,
 } from './lib.mjs';
 
-const CONCURRENCY = 4;
+const CONCURRENCY = 2;
 const REQUEST_TIMEOUT_MS = 20000;
-const BATCH_PAUSE_MS = 200;
+const BATCH_PAUSE_MS = 2500;
 // U7 (раунды 13-14): мёртвая канарейка — валидный хендл (24 симв), который
 // теоретически может зарегистрировать кто угодно через BotFather. Вариант
 // «50 символов — длиннее лимита Telegram» НЕ РАБОТАЕТ (проверено живьём:
