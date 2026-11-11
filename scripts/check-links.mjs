@@ -62,10 +62,17 @@ const USER_AGENT = 'Mozilla/5.0 (link-checker; +https://github.com/wwewtech/vpn_
 // Держим счётчик: 8 подряд (2 полных батча) — это не сеть, это t.me нас душит.
 const EMPTY_RESPONSE_STREAK_LIMIT = 8;
 
-// Фатальная ошибка метода: прокидывается сквозь catch в fetchPage и валит прогон.
+// Фатальная ошибка метода: бросается из checkAll (детектор рейт-лимита) и
+// валит прогон — см. AA3 ниже.
 class MethodError extends Error {}
 
-let emptyStreak = 0;
+// Признак вердикта «хендл обсчитан пустой страницей t.me». Единственный
+// источник такого вердикта — fetchPage, поэтому сопоставление по detail надёжно.
+const EMPTY_PAGE_DETAIL = 'пустая страница t.me';
+
+function isEmptyPageResult(item) {
+  return item.status === 'unreachable' && typeof item.detail === 'string' && item.detail.startsWith(EMPTY_PAGE_DETAIL);
+}
 
 async function fetchPage(handle, attempt = 1) {
   const url = `https://t.me/${handle}`;
@@ -77,26 +84,18 @@ async function fetchPage(handle, attempt = 1) {
     if (!response.ok) return { handle, status: 'unreachable', detail: `HTTP ${response.status}` };
     const html = await response.text();
     if (isMissingBotPage(html, handle)) {
-      emptyStreak = 0; // заглушка — осмысленный ответ, троттлинга нет
       return { handle, status: 'dead', detail: 'страница-заглушка «Contact» — хендл не существует' };
     }
     // Пустая страница = рейт-лимит (канарейка это не ловит: она ДО цикла).
     // Раньше такой ответ считался «ok» — linkcheck врал, что бот жив,
     // и verified проставлялся непроверенным ботам.
     if (isTmeMarkupUnrecognized(html)) {
-      emptyStreak += 1;
-      if (emptyStreak >= EMPTY_RESPONSE_STREAK_LIMIT) {
-        throw new MethodError(
-          `рейт-лимит t.me: ${emptyStreak} пустых ответов подряд — дальнейшие результаты недостоверны`,
-        );
-      }
       if (attempt < 3) {
         await sleep(3000);
         return fetchPage(handle, attempt + 1);
       }
       return { handle, status: 'unreachable', detail: 'пустая страница t.me (нет og:title) — троттлинг' };
     }
-    emptyStreak = 0; // нормальный ответ сбрасывает счётчик
     // W2 (раунд 15): каталог «ботов» — проверяем, что сущность действительно бот.
     // Каналы/группы (tgme_page_extra «N subscribers»/«N members») раньше проходили
     // как «ok» — GuardianVPN и Cheburnet_Bot_VPN прожили в каталоге недели.
@@ -178,11 +177,42 @@ async function checkCanary() {
   return { ok: true };
 }
 
+// AA3 (раунд 19): детектор троттлинга t.me. Раньше счётчик пустых ответов
+// жил на уровне МОДУЛЯ и инкрементировался ВНУТРИ fetchPage, который гоняет
+// CONCURRENCY=4 воркеров параллельно. Один общий emptyStreak = гонка:
+// четыре разных троттлящихся хендла из одного батча давали 4 инкремента, и
+// на полном каталоге (305 ботов, 77 батчей) суммарный счётчик воспринимал
+// «4 пустых ответа в батче» как «8 подряд». Так CI-прогон #40566233884
+// умер на 304/305 с ложным «Сбой метода: рейт-лимит t.me: 8 пустых
+// ответов подряд», хотя каждый отдельный хендл был обсчитан один раз —
+// и проверка НЕ ЗАВЕРШИЛАСЬ, разбудив issue #160.
+//
+// Здесь состояние локально: счётчик — в скоупе checkAll, растёт только на
+// результатах ПОДРЯД ИДУЩИХ хендлов (settled — массив батча, не размученный
+// воркерами), сбрасывается при любом другом вердикте. Параллелизм батча
+// больше не искажает счётчик: пустой ответ = пустой ответ, что бы ни делали
+// три соседних воркера.
 async function checkAll(bots) {
   const results = [];
+  let emptyStreak = 0;
   for (let index = 0; index < bots.length; index += CONCURRENCY) {
     const batch = bots.slice(index, index + CONCURRENCY);
     const settled = await Promise.all(batch.map((bot) => fetchPage(bot.handle)));
+    for (const item of settled) {
+      if (isEmptyPageResult(item)) {
+        emptyStreak += 1;
+        if (emptyStreak >= EMPTY_RESPONSE_STREAK_LIMIT) {
+          // Фатал МЕТОДА, а не состояние данных: results бросаем вместе с
+          // пробросом MethodError — вызывающий код (tail файла) из данных
+          // ничего не пишет и уходит в «сбой метода», а не в «мёртвые боты».
+          throw new MethodError(
+            `рейт-лимит t.me: ${emptyStreak} пустых ответов подряд — дальнейшие результаты недостоверны`,
+          );
+        }
+      } else {
+        emptyStreak = 0;
+      }
+    }
     results.push(...settled);
     const done = Math.min(index + CONCURRENCY, bots.length);
     console.log(`Проверено ${done}/${bots.length}...`);

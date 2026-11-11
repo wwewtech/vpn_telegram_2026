@@ -5,9 +5,11 @@
 //   node scripts/liveness-stats.mjs --markdown — то же в Markdown (для релизов/README)
 //
 // Данные: data/liveness/YYYY-MM-DD.json (создаёт еженедельный linkcheck)
-// + data/liveness/seed-deaths.json (W3: ранние смерти до 26.10.2026 —
-// реестр из одних снапшотов слеп к krona_vps_bot и любым ботам, умершим
-// до начала наблюдений). Скрипт только читает — писать может только linkcheck.
+// + data/liveness/seed-deaths.json (W3: смерти, которые снапшоты не видят —
+// и ранние, до начала наблюдений 26.10.2026, и поздние: бот умер после
+// baseline и удалён из каталога, поэтому он просто отсутствует в следующих
+// снапшотах, а «отсутствие» реестр смертью не считает. Сид покрывает оба
+// случая). Скрипт только читает — писать может только linkcheck.
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +21,8 @@ const SEED_PATH = path.join(ROOT, 'data', 'liveness', 'seed-deaths.json');
 const snapshots = loadSnapshots();
 const stats = computeLivenessStats(snapshots);
 
-// W3: слияние с сидом ранних смертей (дубликаты по хендлу не добавляются дважды).
+// W3: слияние с сидом смертей, невидимых из снапшотов (дубликаты по хендлу
+// не добавляются дважды).
 // X3 (раунд 16): сид не добавляет «умершего», если он ЖИВ в снапшотах — сценарий:
 // krona ре-регистрируют, подают заявку, бот в каталоге; снапшоты говорят ok,
 // а сид упрямо говорил бы «умер 19.10». Воскрешение сильнее сида.
@@ -29,6 +32,22 @@ const aliveNow = new Set();
 for (const [handle, last] of stats.lastStatus) {
   if (last.status !== 'dead') aliveNow.add(handle.toLowerCase());
 }
+// AC2 (раунд 19): stats.lastStatus (computeLivenessStats) индексируется
+// ТОЧНЫМ регистром хендла из снапшота, а handle сида — из JSON, где регистр
+// может отличаться (krona_vps_bot vs Krona_VPS_Bot). Раньше здесь стоял
+// stats.lastStatus.get(handle) — при расхождении регистра Map.get вернул
+// undefined, и предупреждение печатало «ЖИВ (undefined)»: выглядело как баг
+// реестра вместо опечатки в данных. Ищем по нижнему регистру.
+const lastStatusByLowerHandle = new Map(
+  [...stats.lastStatus].map(([handle, last]) => [handle.toLowerCase(), last]),
+);
+// AC4 (раунд 20) + исправление: граница между «воскрешение» и «смертью
+// после baseline» — дата последнего наблюдения САМОГО бота (берётся ниже из
+// lastStatusByLowerHandle), а НЕ глобальная дата последнего снапшота. Бот мог
+// выпасть из каталога и из всех поздних снапшотов: его собственное последнее
+// наблюдение — раннее (например, ok 26.10), а снапшоты продолжались до 10.11.
+// Сравнение с глобальной датой объявляло воскрешением бота, который умер
+// 06.11, и тихо выкидывало его смерть из реестра.
 if (existsSync(SEED_PATH)) {
   const seed = JSON.parse(readFileSync(SEED_PATH, 'utf8'));
   const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
@@ -48,8 +67,25 @@ if (existsSync(SEED_PATH)) {
     const key = handle.toLowerCase();
     if (seeded.has(key)) continue;
     if (aliveNow.has(key)) {
-      console.warn(`⚠ Сид: @${handle} числится умершим (${info.diedOn}), но в снапшотах ЖИВ (${stats.lastStatus.get(handle)?.date}) — реестр показывает воскрешение, сид пропущен.`);
-      continue;
+      // AC4 (раунд 20): «жив в снапшотах» — два разных сценария, и раньше оба
+      // молча теряли запись. Если смерть из сида случилась ДО последнего
+      // наблюдения ЭТОГО БОТА, бот потом вернулся в каталог — воскрешение
+      // сильнее сида, запись честно пропускаем. Но если смерть ПОСЛЕ его
+      // последнего наблюдения, это ровно наш случай BearLunaVpnBot: бот жил
+      // в 26.10, умер и был удалён из каталога, поэтому в следующих снапшотах
+      // его просто нет, а «отсутствие» реестр смертью не читается. Такую
+      // смерть надо записать — и предупредить, что хендл в снапшотах живой.
+      // Граница — собственное последнее наблюдение бота (lastStatusByLowerHandle),
+      // а не глобальная дата последнего снапшота: иначе бот, выпавший из
+      // каталога до конца периода наблюдений, выглядел бы «воскресшим».
+      const ownLast = lastStatusByLowerHandle.get(key);
+      const ownLastDate = ownLast?.date ?? null;
+      const diedBeforeLastObservation = ownLastDate !== null && info.diedOn < ownLastDate;
+      if (diedBeforeLastObservation) {
+        console.warn(`⚠ Сид: @${handle} числится умершим (${info.diedOn}), но в снапшотах ЖИВ (${ownLastDate}) — реестр показывает воскрешение, сид пропущен.`);
+        continue;
+      }
+      console.warn(`⚠ Сид: @${handle} умер (${info.diedOn}) после последнего наблюдения (${ownLastDate ?? 'нет наблюдений'}) и в поздних снапшотах не виден — вероятно, удалён из каталога; запись внесена.`);
     }
     stats.deaths.push({
       handle,

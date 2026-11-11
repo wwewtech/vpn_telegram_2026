@@ -56,22 +56,35 @@ try {
   fail(error.message);
 }
 
+const checkMode = process.argv.includes('--check');
+
+// AD4 (раунд 19): отложенные ошибки режима --check. Раньше RU-блок звал fail()
+// сразу, и скрипт умирал ДО английской проверки: дрейф README_EN.md
+// маскировался русским сообщением. Разработчик чинил README.md, прогонял
+// `npm run fix`, и CI падал повторно — уже на EN. Два статус-кво на одну
+// правку данных. Теперь оба расхождения собираются и печатаются одним
+// fail() в конце, а файлы в режиме --check не пишутся вовсе.
+const checkFailures = [];
+
 if (result.changed) {
-  if (process.argv.includes('--check')) {
-    fail('README.md отличается от data/bots.json. Запустите: npm run fix');
+  if (checkMode) {
+    checkFailures.push('README.md отличается от data/bots.json. Запустите: npm run fix');
+  } else {
+    const before = extractBadgeStamp(source);
+    const after = extractBadgeStamp(result.updated);
+    if (before && after && before !== after) {
+      console.log(`Бейдж updated: ${before} -> ${after}`);
+    }
+    writeFileSync(README_PATH, result.updated, 'utf8');
+    console.log(`Готово: таблица перегенерирована и отсортирована по алфавиту (${bots.length} ботов).`);
   }
-  const before = extractBadgeStamp(source);
-  const after = extractBadgeStamp(result.updated);
-  if (before && after && before !== after) {
-    console.log(`Бейдж updated: ${before} -> ${after}`);
-  }
-  writeFileSync(README_PATH, result.updated, 'utf8');
-  console.log(`Готово: таблица перегенерирована и отсортирована по алфавиту (${bots.length} ботов).`);
 } else {
   console.log(`OK: README.md актуален (${bots.length} ботов, сортировка по алфавиту).`);
 }
 
 // Синхронизация README_EN.md: бейдж updated (значение — из основного README) и метки вида «200+ bots».
+// stamp берём из result.updated — в режиме --check файл не пишется, но
+// «каким он должен быть» content уже посчитан, и бейдж из него корректен.
 const stamp = extractBadgeStamp(result.updated);
 if (!stamp) {
   fail('в README.md не найден или повреждён бейдж updated-YYYY.MM — проверьте строку с бейджем «Updated»');
@@ -80,11 +93,16 @@ const enPresent = existsSync(README_EN_PATH);
 const enSource = enPresent ? readFileSync(README_EN_PATH, 'utf8').replace(/\r\n/g, '\n') : '';
 const enResult = renderUpdatedReadmeEn(enSource, bots, stamp, enPresent);
 if (enResult.changed) {
-  if (process.argv.includes('--check')) {
-    fail('README_EN.md не синхронизирован с data/bots.json. Запустите: npm run fix');
+  if (checkMode) {
+    checkFailures.push('README_EN.md не синхронизирован с data/bots.json. Запустите: npm run fix');
+  } else {
+    writeFileSync(README_EN_PATH, enResult.updated, 'utf8');
+    console.log('README_EN.md синхронизирован: бейдж updated и число ботов обновлены.');
   }
-  writeFileSync(README_EN_PATH, enResult.updated, 'utf8');
-  console.log('README_EN.md синхронизирован: бейдж updated и число ботов обновлены.');
 } else if (enPresent) {
   console.log('OK: README_EN.md актуален.');
+}
+
+if (checkFailures.length > 0) {
+  fail(checkFailures.join(' | '));
 }
