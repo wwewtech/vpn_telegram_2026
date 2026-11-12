@@ -6,9 +6,10 @@
 // валидация падает с понятной ошибкой.
 //
 // Зависимостей нет: поддерживается ограниченный профиль JSON Schema draft 2020-12
-// (type, required, additionalProperties, pattern, minItems, items) — ровно то,
-// что используется в schema/bots.schema.json. Для полного профиля есть ajv,
-// но ради 207 записей зависимость не нужна.
+// (type, required, additionalProperties, pattern, minItems, minimum, items) —
+// ровно то, что используют schema/bots.schema.json и schema/liveness.schema.json.
+// Для полного профиля есть ajv, но ради нескольких сотен записей зависимость
+// не нужна (точное число растёт с каталогом — в комментарии оно не считается).
 //
 // Запуск: node scripts/validate-schema.mjs [--quiet]
 // Тесты подменяют путь через env BOTS_DATA_PATH / BOTS_SCHEMA_PATH.
@@ -22,7 +23,7 @@ const SCHEMA_PATH = process.env.BOTS_SCHEMA_PATH ?? path.join(ROOT, 'schema', 'b
 
 // Поддерживаемый профиль ключей схемы. Всё, что схема использует, но валидатор
 // не умеет, должно попасть сюда — иначе молчаливо проигнорируется.
-const SUPPORTED = new Set(['type', 'required', 'additionalProperties', 'pattern', 'minItems', 'items', 'properties', 'title', 'description', 'examples', '$schema', '$id', '_meta']);
+const SUPPORTED = new Set(['type', 'required', 'additionalProperties', 'pattern', 'minItems', 'minimum', 'items', 'properties', 'title', 'description', 'examples', '$schema', '$id', '_meta']);
 
 function typeOf(value) {
   if (value === null) return 'null';
@@ -38,9 +39,15 @@ function isSchemaNode(value) {
 function validateNode(node, schema, pathLabel, errors) {
   // type
   if (schema.type) {
-    const actual = typeOf(node);
     const expected = Array.isArray(schema.type) ? schema.type : [schema.type];
-    if (!expected.includes(actual)) {
+    const actual = typeOf(node);
+    // JSON Schema: 'integer' — подмножество 'number'; в JS оба — typeof 'number'.
+    const typeOk = expected.some((t) => {
+      if (t === 'integer') return actual === 'number' && Number.isInteger(node);
+      if (t === 'number') return actual === 'number';
+      return t === actual;
+    });
+    if (!typeOk) {
       errors.push(`${pathLabel}: ожидается тип ${expected.join('|')}, получен ${actual}`);
       return; // дальнейшие проверки типа бессмысленны
     }
@@ -55,31 +62,58 @@ function validateNode(node, schema, pathLabel, errors) {
       validateNode(item, schema.items, `${pathLabel}[${index}]`, errors);
     });
   }
+  // pattern на самом узле (leaf-схемы: строка с pattern, без type/свойств).
+  // Проверяется до isSchemaNode-обработки, иначе строковые значения pattern не ловят.
+  if (schema.pattern !== undefined && typeof node === 'string' && !new RegExp(schema.pattern).test(node)) {
+    errors.push(`${pathLabel}: значение ${JSON.stringify(node)} не подходит под шаблон ${schema.pattern}`);
+  }
   if (!isSchemaNode(node)) return;
-  // required
+  // required / additionalProperties / pattern / minimum раньше применялись
+  // ТОЛЬКО если у под-схемы был type. schema/liveness.schema.json описывает
+  // счётчики как { minimum: 0 } без type — и получилось, что «-1 мёртвых» и
+  // пропавшее «dead» проходили валидацию, а liveness.schema.json со своей
+  // рутой required ['date','total','ok',...] не проверял вообще ничего.
+  // Теперь ограничения применяются к любому узлу-объекту схемы.
   for (const key of schema.required ?? []) {
     if (!(key in node)) {
       errors.push(`${pathLabel}: отсутствует обязательное поле "${key}"`);
     }
   }
-  // additionalProperties: false + properties
-  if (schema.additionalProperties === false && schema.properties) {
+  // additionalProperties: false — даже без properties (тогда никакие ключи не допустимы).
+  if (schema.additionalProperties === false) {
+    const allowed = schema.properties ? Object.keys(schema.properties) : [];
     for (const key of Object.keys(node)) {
-      if (!(key in schema.properties)) {
-        errors.push(`${pathLabel}: неизвестное поле "${key}" (контракт допускает только: ${Object.keys(schema.properties).join(', ')})`);
+      if (!allowed.includes(key)) {
+        errors.push(`${pathLabel}: неизвестное поле "${key}" (контракт допускает только: ${allowed.join(', ')})`);
       }
     }
   }
-  // pattern + type + рекурсивная проверка свойств
+  // minimum — только для чисел
+  if (typeof node === 'number' && Number.isFinite(node) && schema.minimum !== undefined && node < schema.minimum) {
+    errors.push(`${pathLabel}: минимум ${schema.minimum}, получено ${node}`);
+  }
+  // pattern + рекурсивная проверка свойств. Рекурсия безусловная: раньше
+  // узел без type объявлялся «простым значением», и вложенный контракт
+  // (required / additionalProperties / minimum) не проверялся ВООБЩЕ.
+  // pattern самого узла уже проверен выше (строковые leaf-схемы); здесь
+  // только рекурсия в дочерние узлы, чтобы не дублировать ошибки.
   for (const [key, rule] of Object.entries(schema.properties ?? {})) {
     if (!isSchemaNode(rule)) continue;
     if (!(key in node)) continue;
     const value = node[key];
-    if (rule.pattern !== undefined && typeof value === 'string' && !new RegExp(rule.pattern).test(value)) {
-      errors.push(`${pathLabel}.${key}: значение ${JSON.stringify(value)} не подходит под шаблон ${rule.pattern}`);
-    }
-    if (rule.type !== undefined) {
-      validateNode(value, rule, `${pathLabel}.${key}`, errors);
+    validateNode(value, rule, `${pathLabel}.${key}`, errors);
+  }
+  // additionalProperties как схема — валидирует ЗНАЧЕНИЕ каждого свойства объекта,
+  // ключ которого не описан в properties (или всех свойств, если properties нет).
+  // Раньше вызывался validateNode(node, childSchema, pathLabel) — то есть сам
+  // объект проверялся против схемы значения, и statuses ({...}) падал с
+  // «ожидается тип string, получен object», а реальные значения статусов не
+  // проверялись вообще. Теперь итерируемся по ключам.
+  if (schema.additionalProperties && isSchemaNode(schema.additionalProperties)) {
+    const allowed = new Set(Object.keys(schema.properties ?? {}));
+    for (const [key, value] of Object.entries(node)) {
+      if (allowed.has(key)) continue;
+      validateNode(value, schema.additionalProperties, `${pathLabel}.${key}`, errors);
     }
   }
 }
