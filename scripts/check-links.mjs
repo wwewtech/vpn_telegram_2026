@@ -377,7 +377,7 @@ if (outIndex !== -1 && process.argv[outIndex + 1]) {
 // следующий npm run fix / validate это поймает и выправит, полуданных не возникнет
 // (данные без README валидны, README без данных — нет). Отчёт к этому моменту
 // уже записан — CI не останется без отчёта.
-if (process.argv.includes('--stamp-verified') && dead.length === 0) {
+if (process.argv.includes('--stamp-verified') && dead.length === 0 && notbot.length === 0) {
   const checkedMonth = new Date().toISOString().slice(0, 7);
   const { bots: stamped, changed } = applyVerified(bots, results, checkedMonth);
   if (changed > 0) {

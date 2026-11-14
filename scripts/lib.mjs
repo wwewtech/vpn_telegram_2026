@@ -351,6 +351,15 @@ export function applyVerified(bots, results, checkedAt) {
       delete copy.verified;
       return copy;
     }
+    // notbot — канал или группа, не бот. Каталог принимает только ботов,
+    // поэтому verified у не-бота снимается, как у мёртвого (W2, раунд 15).
+    if (status === 'notbot') {
+      if (bot.verified === undefined) return bot;
+      changed += 1;
+      const copy = { ...bot };
+      delete copy.verified;
+      return copy;
+    }
     return bot;
   });
   return { bots: updated, changed };
