@@ -28,13 +28,19 @@ jobs:
           node-version: 24
 
       - name: Run link checker with verified stamping
-        run: node scripts/check-links.mjs --out link-report.md --stamp-verified
+        id: linkcheck
+        continue-on-error: true
+        run: |
+          # Отчёт создаётся заново ДО запуска: checkout/старый пустой файл не должен
+          # превращать падение скрипта до записи в ложное «все ссылки доступны».
+          printf '## Автопроверка ссылок: сбой метода\n\nСкрипт завершился аварийно до записи итогового отчёта. Данные каталога не подтверждены; смотрите лог этого workflow.\n' > link-report.md
+          node scripts/check-links.mjs --out link-report.md --stamp-verified
 
       # Verified-обновления идут через PR: защита main запрещает прямые пуши
       # (required PR + checks + enforce admins) — и GITHUB_TOKEN не исключение.
       # Бот создаёт ветку и PR; мержить — за человеком (или админ-мержем ниже).
       - name: Create auto-PR with verified updates
-        if: success()
+        if: success() && steps.linkcheck.outcome == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_TITLE: "chore: автопроверка — verified обновлён"
@@ -92,6 +98,9 @@ jobs:
             else
               gh issue create --title "$TITLE" --body-file link-report.md
             fi
+            if [ "${{ steps.linkcheck.outcome }}" != "success" ]; then
+              exit 1
+            fi
             exit 0
           fi
           TITLE="Автопроверка: возможно нерабочие боты"
@@ -113,4 +122,11 @@ jobs:
             if [ -n "$ISSUE_M" ]; then
               gh issue comment "$ISSUE_M" --body "Обновление: метод проверки восстановлен, полный прогон прошёл без сбоев ✅" && gh issue close "$ISSUE_M"
             fi
+          fi
+
+          # continue-on-error нужен, чтобы Issue создавался до завершения job.
+          # Явно возвращаем исходный результат проверки: мёртвые и не-боты —
+          # failure, а не зелёный Link check при наличии проблем в каталоге.
+          if [ "${{ steps.linkcheck.outcome }}" != "success" ]; then
+            exit 1
           fi

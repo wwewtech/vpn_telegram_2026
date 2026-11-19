@@ -51,6 +51,15 @@ jobs:
           echo "prev=${PREV:-}" >> "$GITHUB_OUTPUT"
           echo "Тег: $TAG, предыдущий: ${PREV:-<первый релиз>}"
 
+      - name: Check out the exact tagged revision on reruns
+        run: |
+          TAG="${{ steps.tags.outputs.tag }}"
+          # Повторный запуск существующего релиза не должен смешивать старый архив
+          # тега с новыми данными main. Считаем notes строго по содержимому тега.
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            git checkout --detach "$TAG"
+          fi
+
       - name: Bots count now and at previous release
         id: counts
         run: |
