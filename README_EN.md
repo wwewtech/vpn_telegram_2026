@@ -21,6 +21,9 @@
 - [Catalog of Telegram bots](#catalog-of-telegram-bots)
 - [FAQ](#faq)
 - [How to help](#how-to-help)
+- [Useful links](#useful-links)
+- [Data sources](#data-sources)
+- [Disclaimer](#disclaimer)
 
 ## Why this repo is useful
 
@@ -31,7 +34,7 @@
 ## Quick start (60 seconds)
 
 1. Open 3–5 bots from the list below.
-2. Compare protocols, prices and payment methods.
+2. Open them in Telegram and compare protocols, prices and payment methods — the table does not contain these details.
 3. Check trial access and speed in your region.
 4. Keep 2–3 working options as backup.
 
@@ -523,9 +526,13 @@ _Note: bot availability changes. If one doesn't work, try the next one._
 
 Source of truth: [`data/bots.json`](data/bots.json). The table is generated and always sorted A–Z. Links are clean `https://t.me/<handle>` — no referral or tracking params. 400+ bots and growing.
 
-_The "Verified" column means the bot's t.me page was reachable in the given month (weekly auto-check). It is not a guarantee of service quality: the catalog does not check bot content._
+### How to read the catalog
 
-> **Found a working bot?** Give the repo a ⭐ — one second for you, a huge signal for the project: GitHub and Google rank active repos higher, so the list stays easy to find. The catalog is alive: links are auto-checked weekly, dead bots are removed, new ones are added by the community.
+- **Verified** is the latest recorded month when the t.me page was reachable. It is set by automated checks or manually; it is not a weekly guarantee for every bot.
+- Checks cover the page and entity type, not VPN connectivity, speed, prices or service trustworthiness.
+- Entries are sorted alphabetically, not ranked. Links contain no referral or tracking parameters.
+
+> Found a dead bot or a channel instead of a bot? [Report it](https://github.com/wwewtech/vpn_telegram_2026/issues/new/choose) and help keep the catalog useful.
 
 ## FAQ
 
@@ -545,15 +552,22 @@ Trial period, refund terms, live support.
 
 1. Fork the repo.
 2. Add a bot to `data/bots.json` (or remove a dead one) — the list is auto-sorted, README is regenerated.
-3. Run `npm run fix` and open a Pull Request.
+3. Run `npm run fix` and `npm run check`, then open a Pull Request.
 
 Details: [CONTRIBUTING.md](CONTRIBUTING.md). Issues: [broken bot / new bot templates](https://github.com/wwewtech/vpn_telegram_2026/issues/new/choose).
 
-> **Like this list?** Star the repo ⭐ — it keeps the project alive and visible in GitHub search.
+If the catalog helped, give the repository a ⭐ or share the link.
 
-## Star History
+## Useful links
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wwewtech/vpn_telegram_2026&type=timeline)](https://www.star-history.com/#wwewtech/vpn_telegram_2026&timeline)
+- [Telegram](https://telegram.org) · [Download Telegram](https://telegram.org/dl) · [Telegram Web](https://web.telegram.org)
+- [Project star history](https://www.star-history.com/#wwewtech/vpn_telegram_2026&timeline)
+
+## Data sources
+
+- The catalog uses public Telegram pages: `https://t.me/<handle>`.
+- Link availability is checked by `scripts/check-links.mjs`.
+- Supported regions and protocols can change; confirm them inside each bot.
 
 ## Disclaimer
 
