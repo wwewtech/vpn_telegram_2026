@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 2,
+  "label": "coverage",
+  "message": "94.4%",
+  "color": "brightgreen",
+  "cacheSeconds": 3600,
+  "namedLogo": "node.js"
+}
