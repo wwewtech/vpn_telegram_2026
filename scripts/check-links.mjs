@@ -7,7 +7,7 @@
 //
 // Запуск: node scripts/check-links.mjs [--out link-report.md] [--no-fail] [--stamp-verified]
 // Выход: отчёт в Markdown (пустой файл/поток, если проблем нет).
-//        exit 1, если найдены мёртвые боты или сломался сам метод (отчёт уже записан);
+//        exit 1, если найдены мёртвые боты, не-боты или сломался сам метод (отчёт уже записан);
 //        --no-fail всегда возвращает 0.
 //        Недоступные (unreachable) не считаются ошибкой — это сеть, а не мёртвый бот.
 //
@@ -324,6 +324,7 @@ try {
   process.exit(1);
 }
 const dead = results.filter((item) => item.status === 'dead');
+const notbot = results.filter((item) => item.status === 'notbot');
 const unreachable = results.filter((item) => item.status === 'unreachable');
 const report = renderReport(results, new Date().toISOString().slice(0, 10));
 
@@ -390,7 +391,7 @@ if (process.argv.includes('--stamp-verified') && dead.length === 0 && notbot.len
   }
 }
 
-console.log(`Итог: проверено ${results.length}, мёртвых: ${dead.length}, недоступных: ${unreachable.length}.`);
-if (dead.length > 0 && !process.argv.includes('--no-fail')) {
+console.log(`Итог: проверено ${results.length}, мёртвых: ${dead.length}, не-ботов: ${notbot.length}, недоступных: ${unreachable.length}.`);
+if ((dead.length > 0 || notbot.length > 0) && !process.argv.includes('--no-fail')) {
   process.exitCode = 1;
 }
